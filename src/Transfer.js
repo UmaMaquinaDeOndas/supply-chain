@@ -22,7 +22,6 @@ export default function Main (props) {
             1 Unit = 1000000000000
           </Label>
         </Form.Field>
-        <Form.Field>Transfer more than the existential amount for account with 0 balance</Form.Field>
         <Form.Field>
           <Input
             fluid

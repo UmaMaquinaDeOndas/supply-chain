@@ -227,7 +227,6 @@ function TxButton ({
   );
 }
 
-// prop type checking
 TxButton.propTypes = {
   accountPair: PropTypes.object,
   setStatus: PropTypes.func.isRequired,

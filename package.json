@@ -5,7 +5,7 @@
   "author": "Parity Technologies <admin@parity.io>",
   "license": "Unlicense",
   "scripts": {
-    "start": "react-scripts start",
+    "start": "PORT=8000 react-scripts start",
     "build": "react-scripts build",
     "test": "CI=true react-scripts test --env=jsdom",
     "eject": "react-scripts eject",

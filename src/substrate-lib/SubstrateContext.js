@@ -44,9 +44,6 @@ const reducer = (state, action) => {
     case 'CONNECT_ERROR':
       return { ...state, apiState: 'ERROR', apiError: action.payload };
 
-    case 'LOAD_KEYRING':
-      return { ...state, keyringState: 'LOADING' };
-
     case 'SET_KEYRING':
       return { ...state, keyring: action.payload, keyringState: 'READY' };
 
