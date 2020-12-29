@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+    <title>Wivtech - Supply Chain on Substrate</title>
+  </head>
+    <body onload="showDashboard()">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#"><img src="/logo" width="30%" heigth="30%"><bold>Supply Chain</bold></a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Settings
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                  <li><a class="dropdown-item" href="#loginForm" data-bs-toggle="modal" data-bs-target="#loginForm">Login</a></li>
+                  <li><a class="dropdown-item" href="#logoutForm" data-bs-toggle="modal" data-bs-target="#logoutForm">Logout</a></li>
+                  <li><a class="dropdown-item" href="#signupForm" data-bs-toggle="modal" data-bs-target="#signupForm">Signup</a></li>
+                  <li><a class="dropdown-item" href="#">Configuration</a></li>
+                </ul>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Assets
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                  <li><a class="dropdown-item" href="#addAsset" data-bs-toggle="modal" data-bs-target="#addAsset">New Asset</a></li>
+                  <li><a class="dropdown-item" href="#">Edit Asset</a></li>
+                  <li><a class="dropdown-item" href="#">List Assets</a></li>
+                </ul>
+              </li>
+            </ul>
+            <form class="d-flex">
+              <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+              <button class="btn btn-outline-success" type="submit">Search</button>
+            </form>
+          </div>
+          <!-- Modal  Add Asset Form-->
+          <div class="modal fade" id="addAsset" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+          <div class="modal-dialog">
+          <div class="modal-content">
+          <div class="modal-header">
+          <h5 class="modal-title" id="staticBackdropLabel">New Asset</h5>
+          
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form class="row g-3 needs-validation" action="/addasset" method="post" enctype="multipart/form-data" novalidate>
+              <label for="assetId" class="form-label">Unique Id/Serial Number</label>
+              <div class="input-group has-validation">
+                <input type="text" class="form-control" id="assetId" name="assetId" required>
+                <div class="valid-feedback">
+                  Ok - Duplicated values will be verified after submission  
+                </div>
+                <div class="invalid-feedback">
+                  Please insert a unique id or serial number of the asset.
+                </div>
+              </div>
+              <label for="assetDescription" class="form-label">Description</label>
+                <div class="input-group-description has-validation">
+                  <textarea class="form-control" id="assetDescription" name="assetDescription" height="3" maxlength="2048" required></textarea>
+                  <div class="valid-feedback">
+                    Ok - Description is acceptable in any format and character type
+                  </div>
+                  <div class="invalid-feedback">
+                    Please insert a description of the asset
+                  </div>
+                </div>
+              <div class="input-group-photo has-validation"></div>
+                <input type="file" class="form-control" id="inputMainPhoto" name="inputMainPhoto" required>
+                <label class="input-group-text" for="inputMainPhoto">for main photo</label>
+                <div class="valid-feedback">
+                  Ok - any photo format is acceptable 
+                </div>
+                <div class="invalid-feedback">
+                  Please select a photo of your asset
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </form>
+          </div>
+          </div>
+          </div>
+          </div>
+          </div>
+          <!-- Modal  Login Form-->
+          <div class="modal fade" id="loginForm" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog">
+            <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="staticBackdropLabel">Login</h5>
+            
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form class="row g-3 needs-validation" action="/login" method="post"  novalidate>
+                <label for="userName" class="form-label">User Name</label>
+                <div class="input-group-description has-validation">
+                  <input type="text" class="form-control" id="userName" name="userName" required>
+                  <div class="invalid-feedback">
+                    Please insert a valid username
+                  </div>
+                </div>
+                <label for="passwordLogin" class="form-label">Password</label>
+                <div class="input-group has-validation">
+                  <input type="password" class="form-control" id="passwordLogin" name="passwordLogin" required>
+                  <div class="invalid-feedback">
+                    Please insert the password for your account.
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <button type="submit" class="btn btn-primary">Submit</button>
+                  </div>
+              </form>
+            </div>
+            </div>
+            </div>
+            </div>
+          </div>
+          <!-- Modal  Logout Form-->
+          <div class="modal fade" id="logoutForm" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog">
+            <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="staticBackdropLabel">Logout</h5>
+            </div>
+            <div class="modal-body">
+              <form class="row g-3" action="/logout" method="post"  novalidate>
+                <h4> Do you want to close the session?</h4>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <button type="submit" class="btn btn-primary">Logout</button>
+                </div>
+              </form>
+            </div>
+            </div>
+            </div>
+            </div>
+          </div>
+          
+          <!-- Modal  Signup Form-->
+          <div class="modal fade" id="signupForm" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog">
+            <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="staticBackdropLabel">Signup</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" onload>
+              <form class="row g-3 needs-validation" action="/signup" method="post" onsubmit="return(checkDataSignup());" novalidate >
+                <label for="userNameSignup" class="form-label">User Name</label>
+                <div class="input-group-username-signup has-validation">
+                  <input type="text" class="form-control" id="userNameSignup" name="userNameSignup" required>
+                  <div class="invalid-feedback">
+                    Please insert an unused user name (case unsensitive)
+                  </div>
+                </div>
+                <label for="securitySeed" class="form-label">Security Seed</label>
+                <div class="input-group-seed has-validation">
+                  <input type="text" class="form-control" id="securitySeed" name="securitySeed" value="" required>
+                  <button class="btn btn-outline-secondary" type="button" id="securitySeedButton" onclick="getRandomSeed();" >Generate</button>
+                  <div class="invalid-feedback">
+                    Please insert a security seed to generate your private keys.
+                  </div>
+                </div>
+                <label for="passwordSignup" class="form-label">Password</label>
+                <div class="input-group-password-signup has-validation">
+                  <input type="text" class="form-control" id="passwordSignup" name="passwordSignup" value="" required>
+                  <div class="invalid-feedback">
+                    Please insert a password long the least 8 chars (longer is better)
+                  </div>
+                </div>
+                <label for="passwordSignupR" class="form-label">Repeat Password</label>
+                <div class="input-group-password-signupr has-validation">
+                  <input type="text" class="form-control" id="passwordSignupR" name="passwordSignupR" value="" required>
+                  <div class="invalid-feedback">
+                    Repeat the same password of the previous field to be sure you know it.
+                  </div>
+                </div>
+                <div class="input-group-username-signup has-validation">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" value="buyer" id="buyer" name="category" checked>
+                    <label class="form-check-label" for="buyer">
+                      Buyer
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" value="supplier" id="supplier" name="category" >
+                    <label class="form-check-label" for="supplier">
+                      Supplier
+                    </label>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <button type="submit" class="btn btn-primary">Submit</button>
+                  </div>
+              </form>
+            </div>
+            </div>
+            </div>
+            </div>
+          </div>
+      </nav>
+      <div class="container">
+        <div class="row">
+          <div class="col-sm" id="lastblock">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-sm" id="hashlastblock">
+          </div>
+        </div>
+        <div id="log"></div>
+      </div>
+
+      </did>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
+    <script>
+        setInterval(async function() { 
+          let url="/lastblock";
+          let response = await fetch(url);
+          if (response.ok) { 
+            let json = await response.json();
+            document.getElementById("lastblock").innerHTML = "<h1>"+json.number+"</h1><h6>Last Block</h6>";
+            document.getElementById("hashlastblock").innerHTML = "<small>"+json.parentHash+"</small><h6>Last Hash</h6>";
+
+          } else {
+            document.getElementById("lastblock").innerHTML = "HTTP-Error: " + response.status;
+            document.getElementById("hashlastblock").innerHTML = "HTTP-Error: " + response.status;
+
+          }
+        }, 6000);
+        async function getRandomSeed(){
+          let url="/randomseed";
+          let response = await fetch(url);
+          if (response.ok) { 
+            let json = await response.json();
+            securitySeed.setAttribute('value', json.randomseed);
+          } else {
+            securitySeed.setAttribute('value', "HTTP-Error: " + response.status);
+          }
+        }
+        //function to show log on dashboard
+        async function showDashboard(){
+          let urllb="/lastblock";
+          let responselb = await fetch(urllb);
+          if (responselb.ok) { 
+            let json = await responselb.json();
+            document.getElementById("lastblock").innerHTML = "<h1>"+json.number+"</h1><h6>Last Block</h6>";
+            document.getElementById("hashlastblock").innerHTML = "<small>"+json.parentHash+"</small><h6>Last Hash</h6>";
+
+          } else {
+            document.getElementById("lastblock").innerHTML = "HTTP-Error: " + response.status;
+            document.getElementById("hashlastblock").innerHTML = "HTTP-Error: " + response.status;
+
+          }
+          let url="/logdata";
+          let response = await fetch(url);
+          if (response.ok) { 
+            let h = await response.text();
+            document.getElementById("log").innerHTML = h;
+          } else {
+            document.getElementById("log").innerHTML = "HTTP-Error: " + response.status;
+          }
+        }
+        function checkDataSignup(){
+          if(document.getElementById('passwordSignup').value==document.getElementById('passwordSignupR').value) {
+            document.getElementById("passwordSignupR").setAttribute("class",'is-valid');
+            return true; 
+          }
+          else {
+            alert('Passwords are not matching.');
+            document.getElementById("passwordSignupR").setAttribute('class','form-control is-invalid');
+            return false;
+          }
+        }
+        
+
+    </script>
+    <script>
+      (function () {
+      'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms)
+        .forEach(function (form) {
+          form.addEventListener('submit', function (event) {
+          if (!form.checkValidity()) {
+            event.preventDefault()
+            event.stopPropagation()
+          }
+          form.classList.add('was-validated')
+        }, false)
+        })
+      })()
+    </script>
+  </body>
+</html>
