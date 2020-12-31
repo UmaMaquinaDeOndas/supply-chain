@@ -1,30 +1,36 @@
-// Web server for Supply Chain User Interface (run ny node index.js and connect by browsing to http://localhost:3000)
+// Web server for Supply Chain User Interface (run by "node index.js" and connect by browsing to http://localhost:3000)
+// You should have Wiv Supply Chain node (Substrate) running in the same machine
+// You should have IPFS node (www.ipfs.io) running in the same machine for storing images
 console.log("100 - Web Server for Supply Chain - ver. 1.00 - Starting");
 let express = require('express');
 const { ApiPromise, WsProvider } = require('@polkadot/api');   
-const wsProvider = new WsProvider('ws://127.0.0.1:9944');
 const { Keyring } = require('@polkadot/api');
 const multer = require('multer');
 const { mainModule } = require('process');
 const { naclDecrypt,naclEncrypt,randomAsU8a,cryptoWaitReady, mnemonicGenerate} = require('@polkadot/util-crypto'); 
-//const { keyring }= require('@polkadot/ui-keyring');
 const { u8aToHex,stringToU8a,u8aToString } =require('@polkadot/util');
+
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser')
-const PATHKEYS="wivkeys";   //path where to store the encrypted login data
-const PATHLOGS="wivlogs";   //path where to store logs for each user
-const SECRET="4191ecdd49b1dc6b03020c2ea44a79e276c69f30"; //change it for your installation, it's used to encrypt the sessiontoken
+// customization section - you can change the following constants upon your preferences
+const wsProvider = new WsProvider('ws://127.0.0.1:9944');
+const PATHKEYS="wivkeys";             //path where to store the encrypted login data
+const PATHLOGS="wivlogs";             //path where to store logs for each user
+const PATHUPLOADS="wivuploads/";      //path where to store uploaded files for each user
+const SECRET="4191ecdd49b1dc6b03020c2ea44a79e276c69f30"; //change THIS for your installation, it's used to encrypt the session token
+// end customization section 
 let SECRETSHA256='';  //global var for SH256 computing
-
-// execute main loop as async function
+// execute main loop as async function because of "await" requirements that cannot be execute from the main body
 mainloop();
-
+// main loop function
 async function mainloop(){
     let fs = require('fs');
-    const api = await ApiPromise.create({ provider: wsProvider });      // create API object
+    //connect to local substrate node (it will retry automatically the connection if not reachable)
+    const api = await ApiPromise.create({ provider: wsProvider });   
+    //setup express+multer modules (http server + file upload management)
     let app = express();
     const upload = multer({
-        dest: 'uploads/' // this saves your file into a directory called "uploads"
+        dest: PATHUPLOADS // this saves your file into a directory called "wivuploads/" or as changed int the customization section
     }); 
     app.use(express.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
     app.use(cookieParser());
@@ -72,7 +78,6 @@ async function mainloop(){
     //login
     app.post('/login',function(req, res) {
         const fs = require('fs')
-
         console.log(req.body.userName);
         console.log(req.body.passwordLogin);
         let filename="./"+PATHKEYS+"/"+req.body.userName+".enc";
@@ -107,29 +112,20 @@ async function mainloop(){
                 const securityseedarray = naclDecrypt(encseed, nonce, secret);
                 if (securityseedarray==null){
                     //todo write log error
-                    
+                    console.log("Error logging")
                 }
                 else{
                     // set cookie and write log for sucessfully login
                     // make a token with encrypted username and security seed (random nonce every time)
                     const securityseed=String.fromCharCode.apply(0, securityseedarray)
-                    // make sha256 of the system password
-                    const hash = crypto.createHash('sha256');
-                    hash.on('readable', () => {
-                        const data = hash.read();
-                        if (data) {
-                        console.log("hash: "+data.toString('hex'));
-                        }
-                    });
-                    hash.write(SECRET);
-                    hash.end();
-                    secretsession=hash.digest();
-                    //encrypt security seed
-                    const { encrypteds, nonces } = naclEncrypt(stringToU8a(securityseed), secretsession);
-                    console.log("encrypteds: ",encrypteds);
-                    let de = Buffer.from(encrypteds);
+                    console.log("Decrypted securityseed: " +securityseed);
+                    //encrypt security seed (encrypted and nonce names cannot be changed to work with naclEncrypt)
+                    let { encrypted, nonce } = naclEncrypt(stringToU8a(securityseed), SECRETSHA256);
+                    console.log("encrypte: " +encrypted);
+                    console.log("nonce: "+nonce);
+                    let de = Buffer.from(encrypted);
                     let encryptedb64 = de.toString('base64');
-                    let n = Buffer.from(nonces);
+                    let n = Buffer.from(nonce);
                     let nonceb64 = n.toString('base64');
                     let ub = Buffer.from(req.body.userName);
                     let usernameb64 = ub.toString('base64');

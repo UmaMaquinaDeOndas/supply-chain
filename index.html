@@ -241,6 +241,14 @@
             document.getElementById("hashlastblock").innerHTML = "HTTP-Error: " + response.status;
 
           }
+          let urlt="/logdata";
+          let responset = await fetch(urlt);
+          if (responset.ok) { 
+            let ht = await responset.text();
+            document.getElementById("log").innerHTML = ht;
+          } else {
+            document.getElementById("log").innerHTML = "HTTP-Error: " + response.status;
+          }
         }, 6000);
         async function getRandomSeed(){
           let url="/randomseed";
@@ -273,6 +281,13 @@
             document.getElementById("log").innerHTML = h;
           } else {
             document.getElementById("log").innerHTML = "HTTP-Error: " + response.status;
+          }
+          let  cx = document.cookie;
+          if (cx.indexOf("sessiontoken=")==-1 || cx==undefined){
+              if(window.location.href.indexOf('#loginForm') == -1) {
+                  let loginForm = new bootstrap.Modal(document.getElementById('loginForm'), {keyboard: true});
+                  loginForm.show();
+              }
           }
         }
         function checkDataSignup(){
