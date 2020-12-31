@@ -1,0 +1,27 @@
+stages:
+- build
+- release
+
+.template: &env-info
+  before_script:
+  - env | grep -e CI_COMMIT -e CI_PIPELINE
+  - npm  --version
+  - yarn --version
+
+check:
+  <<: *env-info
+  stage: build
+  script:
+  - make init
+
+release:
+  <<: *env-info
+  stage: release
+  when: manual
+  script:
+  - make release
+  - docker login -u kirillt -p $DOCKERHUB_TOKEN
+  - docker tag supply-chain-ui wivt/supply-chain-ui:$CI_COMMIT_SHORT_SHA
+  - docker tag supply-chain-ui wivt/supply-chain-ui:latest
+  - docker push wivt/supply-chain-ui:$CI_COMMIT_SHORT_SHA
+  - docker push wivt/supply-chain-ui:latest

@@ -20,6 +20,16 @@ Make sure that you have launched the node itself:
 docker run --rm -it --net host wivt/supply-chain:latest
 ```
 
+If you want to persist keys and logs, then bind `wivkeys` and `wivlogs` directories:
+```sh
+docker run --rm -it --net host \
+    -v /tmp/wivlogs:/wivlogs:Z \
+    -v /tmp/wivkeys:/wivkeys:Z \
+    wivt/supply-chain-ui:latest
+```
+
+Here, `:Z` suffix is necessary only for systems enabling SELinux.
+
 ### Run project from sources
 
 You don't need to perform these steps if you have launched the project with Docker.
