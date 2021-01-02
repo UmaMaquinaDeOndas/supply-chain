@@ -18,6 +18,9 @@ const PATHKEYS="wivkeys";             //path where to store the encrypted login 
 const PATHLOGS="wivlogs";             //path where to store logs for each user
 const PATHUPLOADS="wivuploads/";      //path where to store uploaded files for each user
 const SECRET="4191ecdd49b1dc6b03020c2ea44a79e276c69f30"; //change THIS for your installation, it's used to encrypt the session token
+const MYSQLIPADDRESS="127.0.0.1";     // ip address of Mysql/Mariadb server (standard port 3306)
+const MYSQLUSERNAME="root";           // username to use for Mysql connection
+const MYSQLPWD="Aszxqw1234";          // password of the username above
 // end customization section 
 let SECRETSHA256='';  //global var for SH256 computing
 // execute main loop as async function because of "await" requirements that cannot be execute from the main body
@@ -41,14 +44,14 @@ async function mainloop(){
     });
     hashSECRET.write(SECRET);
     hashSECRET.end();
-    let SECRETSHA256=hashSECRET.digest();
+    SECRETSHA256=hashSECRET.digest();
     //inizialize Wasm engine for polkadot-keyring-ui
     /*cryptoWaitReady().then(() => {
         // load all available addresses and accounts
         keyring.loadAll({ ss58Format: 42, type: 'sr25519' });
         console.log("Keyring loaded");
     });*/
-    //creato folder for logs storage
+    //creating folder for logs storage
     if (!fs.existsSync("./"+PATHLOGS)) {
         fs.mkdir("./"+PATHLOGS, function(err) {
             if (err) {
@@ -58,6 +61,7 @@ async function mainloop(){
             }
         });
     }
+    createDatabase();
     //routing for the web paths
     //main dashboard loaded from index.html
     app.get('/',function(req,res){             
@@ -66,31 +70,26 @@ async function mainloop(){
     });
     // new asset submission
     app.post('/addasset', upload.single('inputMainPhoto'), (req, res) => {
-        console.log(req.body);
-        console.log(req.file);
-        console.log(req.file.originalname);
-        console.log(req.file.path);
         let sessiontoken=req.cookies['sessiontoken'];
-        console.log(req);
-        store_asset(req.file.path,req.body,api,sessiontoken);
+        store_asset(req.file.path,req.body,api,sessiontoken,req.file.originalname);
         res.redirect("/");
     });
     //login
     app.post('/login',function(req, res) {
         const fs = require('fs')
-        console.log(req.body.userName);
-        console.log(req.body.passwordLogin);
         let filename="./"+PATHKEYS+"/"+req.body.userName+".enc";
-        console.log("filename:"+filename);
         if (!fs.existsSync(filename)) {
+            res.cookie('loginFormError', encodeURI("Wrong password or username not present"));
+            res.cookie('loginFormUserName', encodeURI(req.body.userName));
             res.redirect("/");
         }
         else{
             // read once+encrypted seed from local storage
             fs.readFile(filename, 'utf8' , (err, data) => {
                 if (err) {
-                    console.error(err);
-                    return;
+                    res.cookie('loginFormError', encodeURI("Wrong password or username not present"));
+                    res.cookie('loginFormUserName', encodeURI(req.body.userName));
+                    res.redirect("/");
                 }
                 let b = data.split('###');
                 let nonceb64=b[0];
@@ -111,27 +110,26 @@ async function mainloop(){
                 const encseed = Buffer.from(encseedb64,'base64');
                 const securityseedarray = naclDecrypt(encseed, nonce, secret);
                 if (securityseedarray==null){
-                    //todo write log error
-                    console.log("Error logging")
+                    res.cookie('loginFormError', encodeURI("Wrong password or username not present"));
+                    res.cookie('loginFormUserName', encodeURI(req.body.userName));
                 }
                 else{
-                    // set cookie and write log for sucessfully login
+                    // set cookie and write log for successfully login
                     // make a token with encrypted username and security seed (random nonce every time)
                     const securityseed=String.fromCharCode.apply(0, securityseedarray)
                     console.log("Decrypted securityseed: " +securityseed);
-                    //encrypt security seed (encrypted and nonce names cannot be changed to work with naclEncrypt)
-                    let { encrypted, nonce } = naclEncrypt(stringToU8a(securityseed), SECRETSHA256);
-                    console.log("encrypte: " +encrypted);
-                    console.log("nonce: "+nonce);
-                    let de = Buffer.from(encrypted);
-                    let encryptedb64 = de.toString('base64');
-                    let n = Buffer.from(nonce);
-                    let nonceb64 = n.toString('base64');
-                    let ub = Buffer.from(req.body.userName);
-                    let usernameb64 = ub.toString('base64');
-                    let sessiontoken=usernameb64+"###"+nonceb64+"###"+encryptedb64;
-                    console.log("session token:"+sessiontoken);
+                    let sessiontoken=generateSessionToken(securityseed,req.body.userName);
+                    //set session token cookie (url encoded)
                     res.cookie('sessiontoken', encodeURI(sessiontoken));
+                    res.clearCookie('loginFormError');
+                    //clean previous log
+                    let b = sessiontoken.split('###');
+                    let username=Buffer.from(b[0],'base64');
+                    let filenamelog='./'+PATHLOGS+'/'+username+".log";
+                    if(fs.existsSync(filenamelog)){
+                        fs.unlinkSync(filenamelog);
+                    }
+                    //write session log
                     write_log("[info] - user "+req.body.userName+" has logged in.",sessiontoken);
                 }
                 res.redirect("/");    
@@ -150,20 +148,34 @@ async function mainloop(){
             console.log('remove: '+filename);
             fs.unlinkSync(filename);
         }
-        res.cookie('sessiontoken', '', { expires: new Date(Date.now())});
+        //clear all cookies
+        res.clearCookie('loginFormError');
+        res.clearCookie('sessiontoken');
+        res.clearCookie('loginFormUserName');
+        res.clearCookie('userNameSignup');
+        res.clearCookie('securitySeedSignup');
+        res.clearCookie('passwordSignup');
+        res.clearCookie('passwordSignupR');
+        res.clearCookie('signupFormUsernameError');
         res.redirect("/");    
     });
     //signup
     app.post('/signup',function(req, res) {
         const fs = require("fs")
-        console.log(req.body);
-        console.log(req.body.userNameSignup);
-        console.log(req.body.securitySeed);
-        console.log(req.body.passwordSignup);
         let filename="./"+PATHKEYS+"/"+req.body.userNameSignup+".enc";
+        if(fs.existsSync(filename)){
+            res.cookie('signupFormUsernameError', "User name is already present, please change it."); 
+            res.cookie('userNameSignup',encodeURI(req.body.userNameSignup));
+            res.cookie('securitySeedSignup',encodeURI(req.body.securitySeedSignup));
+            res.cookie('passwordSignup',encodeURI(req.body.passwordSignup));
+            res.cookie('passwordSignupR',encodeURI(req.body.passwordSignupR));
+            console.log("[info] Failed attempt to signup with an username already present");
+            res.redirect("/");   
+        }
         const keyring = new Keyring({ type: 'sr25519' });
-        const keyspair = keyring.addFromUri(req.body.securitySeed,{ name: req.body.userNameSignup });
-        console.log(`102 - ${keyspair.meta.name}: has address ${keyspair.address} with publicKey [${keyspair.publicKey}]`);
+        const keyspair = keyring.addFromUri(req.body.securitySeedSignup,{ name: req.body.userNameSignup });
+        console.log(`[info] Signup - ${keyspair.meta.name}: has address ${keyspair.address} with publicKey [${keyspair.publicKey}]`);
+        const accountid=`${keyspair.address}`;
         if (!fs.existsSync("./"+PATHKEYS)) {
             fs.mkdir("./"+PATHKEYS, function(err) {
                 if (err) {
@@ -185,7 +197,7 @@ async function mainloop(){
         hash.end();
         secret=hash.digest();
         //encrypt security seed
-        const { encrypted, nonce } = naclEncrypt(stringToU8a(req.body.securitySeed), secret);
+        const { encrypted, nonce } = naclEncrypt(stringToU8a(req.body.securitySeedSignup), secret);
         let de = Buffer.from(encrypted);
         let d64 = de.toString('base64');
         let n = Buffer.from(nonce);
@@ -199,6 +211,14 @@ async function mainloop(){
               return console.log(err);
             }
           });
+        //store users in users table
+        store_username_db(req.body.userNameSignup,accountid,encb64);
+        //make automatic login after signup
+        sessiontoken=generateSessionToken(req.body.securitySeedSignup,req.body.userNameSignup);
+        res.cookie('sessiontoken', encodeURI(sessiontoken));
+        res.clearCookie('loginFormError');
+        //write session log
+        write_log("[info] - user "+req.body.userNameSignup+" has logged in.",sessiontoken);
         res.redirect("/");
     });
     //get last block written on the blockchain
@@ -218,7 +238,7 @@ async function mainloop(){
     {
         const fs = require('fs')
         sessiontoken=req.cookies.sessiontoken;
-        let logh='<table class="table table-striped"><tr><th>Date/Time</th><th>Event Description</th><tr>';
+        let logh='<center><h2>Events</h2></center><table class="table table-striped"><tr><th>Date/Time</th><th>Event Description</th><tr>';
         let logf='</table>'
         if(sessiontoken==undefined){
             res.send(logh+logf);
@@ -226,8 +246,6 @@ async function mainloop(){
             let b = sessiontoken.split('###');
             let username=Buffer.from(b[0],'base64');
             let filename='./'+PATHLOGS+'/'+username+".log";
-            //let logh='<div class="row"><div class="col-sm"><h3>Date/Time<h3></div><div class="col-sm"><h3>Event Description</h3></div></div>\n';
-            let logh='<table class="table table-striped"><tr><th>Date/Time</th><th>Event Description</th><tr>';
             let log=read_file(filename);
             let logf='</table>'
             let logr=log.split("\n");
@@ -242,6 +260,20 @@ async function mainloop(){
             }
             logs=logs+logf;
             res.send(logs);
+        }
+        
+    });
+    //get last log data
+    app.route('/assetslist').get(function(req,res)
+    {
+        const fs = require('fs')
+        sessiontoken=req.cookies.sessiontoken;
+        let logh='<table class="table table-striped"><tr><th>Date/Time</th><th>Event Description</th><tr>';
+        let logf='</table>'
+        if(sessiontoken==undefined){
+            res.send(logh+logf);
+        }else{
+            assetsList(res);
         }
         
     });
@@ -295,14 +327,15 @@ function read_file(name){
         return(undefined);
       }
 }
-// function to store assed in ipfs + blockchain
-async function store_asset(filename,body,api,sessiontoken){
+// function to store assets in ipfs + blockchain
+async function store_asset(filename,body,api,sessiontoken,originalfilename){
     const IpfsHttpClient = require('ipfs-http-client');
     const { globSource } = IpfsHttpClient;
     const ipfs = IpfsHttpClient();
-    //const file = await ipfs.add(globSource(filename));
-    //console.log(file);
-    console.log("storing in blockchain:"+body.assetDescription);
+    let file = await ipfs.add(globSource(filename));
+    let ipfsname=`${file.cid}`;
+    ipfsname.replace("CID(","");
+    ipfsname.replace(")","");
     //compute sha256 of SECRET
     const hashSECRET = crypto.createHash('sha256');
     hashSECRET.on('readable', () => {
@@ -313,38 +346,29 @@ async function store_asset(filename,body,api,sessiontoken){
     let SECRETSHA256=hashSECRET.digest();
     //decrypt security seed from sessiontoken
     let sessiontokendecoded = decodeURIComponent(sessiontoken);
-    console.log("sessiontoken: "+sessiontoken);
-    console.log("sessiontokendecoded: "+sessiontokendecoded);
     let b = sessiontokendecoded.split('###');
     let usernameb64=b[0];
-    console.log("usernameb64 "+usernameb64);
     let nonceb64=b[1];
-    console.log("nonceb64 "+nonceb64);
     let encseedb64=b[2];
-    console.log("encseedb64 "+encseedb64);
     const username = Buffer.from(usernameb64,'base64');
-    console.log("username:"+username);
     const nonce = Buffer.from(nonceb64,'base64');
-    console.log("nonce:"+nonce);
     const encseed = Buffer.from(encseedb64,'base64');
-    console.log("encseed:"+encseed);
-
-    const securityseed = naclDecrypt(encseed, nonce, SECRETSHA256);
-    console.log("securityseed:"+securityseed)
+    let securityseedu8 = naclDecrypt(encseed, nonce, SECRETSHA256);
+    let securityseed =u8aToString(securityseedu8);
     const keyring = new Keyring({ type: 'sr25519' });
-    //const PHRASE = 'bottom drive obey lake curtain smoke basket hold race lonely fit walk//Alice';
-    //const loggeduser = keyring.addFromUri(PHRASE,{ name: 'Alice' });
     const loggeduser = keyring.addFromUri(securityseed,{ name: username });
+    write_log(`[info] Adding Asset - S/N: ${body.assetSerialNumber} - Request has been queued`,sessiontoken);
+    console.log(`[info] Adding Asset - S/N: ${body.assetSerialNumber} - Request has been queued`);
     let assetdata=body.assetDescription;
     const unsub = await api.tx.wivSupplyChain.newAsset(assetdata).signAndSend(loggeduser,(result) => {
-        console.log(`Adding Asset - Current status is ${result.status}`);
-        write_log(`[info] Adding Asset - Current status is ${result.status}`,sessiontoken);
         if (result.status.isInBlock) {
-            console.log(`Adding Asset - Transaction included at blockHash ${result.status.asInBlock}`);
+            console.log(`[info] Adding Asset - Transaction included at blockHash ${result.status.asInBlock}`);
             write_log(`[info] Adding Asset - Transaction included at blockHash ${result.status.asInBlock}`,sessiontoken);
           } else if (result.status.isFinalized) {
-            console.log(`Adding Asset - Transaction finalized at blockHash ${result.status.asFinalized}`);
-            write_log(`[info] Adding Asset - Transaction finalized at blockHash ${result.status.asFinalized}`,sessiontoken);
+            console.log(`[info] Added Asset - Transaction finalized at blockHash ${result.status.asFinalized}`);
+            write_log(`[info] Added Asset - Transaction finalized at blockHash ${result.status.asFinalized}`,sessiontoken);
+            //store assets in database
+            store_asset_db(`${loggeduser.address}`,`${result.status.asFinalized}`,body,ipfsname,originalfilename);
             unsub();
           }
     });
@@ -360,4 +384,148 @@ function write_log(d,sessiontoken){
     //dtlog='<div class="row"><div class="col-sm">'+dt+'</div><div class="col-sm">'+d+'</div></div>\n';
     let dtlog='<tr><td>'+dt+'</td><td>'+d+'</td></tr>\n';
     fs.appendFileSync(filename, dtlog, 'utf8');
+}
+//function to generate sessiontoken encrypting the security seed with the system password
+function generateSessionToken(securityseed,username){
+    //encrypt security seed (encrypted and nonce names cannot be changed to work with naclEncrypt)
+    let { encrypted, nonce } = naclEncrypt(stringToU8a(securityseed), SECRETSHA256);
+    let de = Buffer.from(encrypted);
+    let encryptedb64 = de.toString('base64');
+    let n = Buffer.from(nonce);
+    let nonceb64 = n.toString('base64');
+    let ub = Buffer.from(username);
+    let usernameb64 = ub.toString('base64');
+    // build session token
+    let sessiontoken=usernameb64+"###"+nonceb64+"###"+encryptedb64;
+    console.log("generate session token:"+sessiontoken);
+    return(sessiontoken);
+}
+// function to store an asset in the assets table
+async function store_asset_db(account,transactionid,body,ipfsphotoaddress,ipfsphotofilename){
+    connection= await connect_database();
+    let sqlquery= "INSERT INTO wivsupplychain.assets set serialnumber=?,description=?,ipfsphotoaddress=?,ipfsphotofilename=?,accountowner=?,transactionid=?,dttransaction=now()";
+    connection.query(
+        {sql: sqlquery,
+        values: [body.assetSerialNumber,body.assetDescription,ipfsphotoaddress,ipfsphotofilename,account,transactionid]},
+        function (error, results, fields) {
+        if (error) throw error;
+    });
+    connection.end();  
+}
+//function to connect to the database wiwsupplychain
+async function connect_database(){
+    //connection to mysql/mariadb database 
+    let mysql= require('mysql');
+    let connection = mysql.createConnection({
+        host     : MYSQLIPADDRESS,
+        user     : MYSQLUSERNAME,
+        password : MYSQLPWD,
+        database : 'wivsupplychain',
+    });
+    connection.connect();
+    return(connection);
+}
+// function to store an asset in the assets table
+async function store_username_db(username,accountid,ecnryptedseed){
+    connection= await connect_database();
+    let sqlquery= "INSERT INTO users set username=?,accountid=?,encryptedseed=?,dtcreation=now()";
+    connection.query(
+        {sql: sqlquery,
+        values: [username,accountid,ecnryptedseed]},
+        function (error, results, fields) {
+        if (error) throw error;
+    });
+    connection.end();  
+}
+// function to send back the assets list of the logged user (search for accountid)
+async function assetsList(res){
+    let b = sessiontoken.split('###');
+    let usernameb=Buffer.from(b[0],'base64');
+    let username=`${usernameb}`;
+    connection= await connect_database();
+    let sqlquery= "SELECT * FROM users WHERE username=?";
+    await connection.query(
+        {sql: sqlquery,
+        values: [username]},
+        function (error, results, fields) {
+        if (error) throw error;
+        assetsListBody(connection,results[0].accountid,res)
+    });
+
+}
+// function to send back the assets list of the logged user (search for assets)
+async function assetsListBody(connection,accountid,res){
+    let al='<center><h2>Assets</h2></center><table class="table table-striped"><tr><th>Id</th><th>Serial Number</th><th>Description</th><th>Dt Creation</th><th>Dt Verification</th><tr>';
+    let sqlquery= "SELECT * FROM assets WHERE accountowner=? order by id desc";
+    await connection.query(
+        {sql: sqlquery,
+        values: [accountid]},
+        function (error, results, fields) {
+        if (error) throw error;
+        for (i = 0; i < results.length; i++) { 
+            al=al+"<tr><td>"+results[i].id+"</td>";
+            al=al+"<td>"+results[i].serialnumber+"</td>";
+            al=al+"<td>"+results[i].description+"</td>";
+            let dtt=`${results[i].dttransaction}`
+            al=al+"<td>"+dtt.substr(0,15)+"</td>";
+            let dtc=`${results[i].dtapproval}`
+            if(dtc=="null"){
+                dtc="Pending"
+            }
+            al=al+"<td>"+dtc+"</td>";
+            al=al+"</tr>"
+        }
+        al=al+"</table>";
+        res.send(al);
+    });     
+    connection.end();  
+}
+// function to create the database and the required table
+function createDatabase(){
+    //connection to mysql/mariadb database and creation of the database
+    let mysql= require('mysql');
+    let connection = mysql.createConnection({
+        host     : MYSQLIPADDRESS,
+        user     : MYSQLUSERNAME,
+        password : MYSQLPWD,
+    });
+    connection.connect();
+    connection.query('CREATE DATABASE IF NOT EXISTS wivsupplychain',function (error, results, fields) {
+        if (error) throw error;
+    });
+    connection.query('USE wivsupplychain',function (error, results, fields) {
+        if (error) throw error;
+    });
+    //creation of table assets
+    let q=`CREATE TABLE IF NOT EXISTS assets(\n`+
+                `id INT AUTO_INCREMENT PRIMARY KEY,\n`+
+                `serialnumber VARCHAR(64) DEFAULT '' NOT NULL,\n`+
+                `description VARCHAR(256) DEFAULT '' NOT NULL,\n`+
+                `ipfsphotoaddress VARCHAR(64) DEFAULT '' NOT NULL,\n`+
+                `ipfsphotofilename VARCHAR(128) DEFAULT '' NOT NULL,\n`+
+                `metadata VARCHAR(8192) DEFAULT '' NOT NULL,\n`+
+                `accountowner VARCHAR(64) DEFAULT '' NOT NULL,\n`+
+                `accountapprover VARCHAR(64) DEFAULT '' NOT NULL,\n`+
+                `transactionid varchar(128) DEFAULT '' NOT NULL,\n`+
+                `dttransaction DATETIME NOT NULL,\n`+
+                `dtapproval DATETIME NOT NULL,\n`+
+                `transfertransactionid varchar(128) DEFAULT '' NOT NULL,\n`+
+                `dttransfertransaction DATETIME\n`+
+                `)`;
+    //console.log(q);
+    connection.query(q,function (error, results, fields) {
+        if (error) throw error;
+    });
+    //creation of table assets
+     q=`CREATE TABLE IF NOT EXISTS users(\n`+
+                `id INT AUTO_INCREMENT PRIMARY KEY,\n`+
+                `username VARCHAR(64) DEFAULT '' NOT NULL,\n`+
+                `accountid VARCHAR(128) DEFAULT '' NOT NULL,\n`+
+                `encryptedseed VARCHAR(512) DEFAULT '' NOT NULL,\n`+
+                `dtcreation DATETIME NOT NULL\n`+
+                `)`;
+    connection.query(q,function (error, results, fields) {
+                    if (error) throw error;
+    });
+    connection.end();  
 }

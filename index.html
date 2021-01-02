@@ -17,13 +17,12 @@
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
               <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                  Settings
+                  Profile
                 </a>
                 <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                  <li><a class="dropdown-item" href="#loginForm" data-bs-toggle="modal" data-bs-target="#loginForm">Login</a></li>
+                  <li><a class="dropdown-item" href="#loginForm" data-bs-toggle="modal" data-bs-target="#loginForm">Switch Account</a></li>
                   <li><a class="dropdown-item" href="#logoutForm" data-bs-toggle="modal" data-bs-target="#logoutForm">Logout</a></li>
-                  <li><a class="dropdown-item" href="#signupForm" data-bs-toggle="modal" data-bs-target="#signupForm">Signup</a></li>
-                  <li><a class="dropdown-item" href="#">Configuration</a></li>
+                  <li><a class="dropdown-item" href="#signupForm" data-bs-toggle="modal" data-bs-target="#signupForm">New Account</a></li>
                 </ul>
               </li>
               <li class="nav-item dropdown">
@@ -32,8 +31,7 @@
                 </a>
                 <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                   <li><a class="dropdown-item" href="#addAsset" data-bs-toggle="modal" data-bs-target="#addAsset">New Asset</a></li>
-                  <li><a class="dropdown-item" href="#">Edit Asset</a></li>
-                  <li><a class="dropdown-item" href="#">List Assets</a></li>
+                  <li><a class="dropdown-item" href="#transferAsset" data-bs-toggle="modal" data-bs-target="#transferAsset">Transfer Asset</a></li>
                 </ul>
               </li>
             </ul>
@@ -53,9 +51,9 @@
           </div>
           <div class="modal-body">
             <form class="row g-3 needs-validation" action="/addasset" method="post" enctype="multipart/form-data" novalidate>
-              <label for="assetId" class="form-label">Unique Id/Serial Number</label>
+              <label for="assetSerialNumber" class="form-label">Serial Number</label>
               <div class="input-group has-validation">
-                <input type="text" class="form-control" id="assetId" name="assetId" required>
+                <input type="text" class="form-control" id="assetId" name="assetSerialNumber" required>
                 <div class="valid-feedback">
                   Ok - Duplicated values will be verified after submission  
                 </div>
@@ -118,9 +116,11 @@
                     Please insert the password for your account.
                   </div>
                 </div>
+                <div id="errorMsgInputForm" class="text-danger"></div>
                 <div class="modal-footer">
                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                   <button type="submit" class="btn btn-primary">Submit</button>
+                  Don't you have an account? <button class="btn btn-outline-secondary" type="button" id="linktosignup" onclick="startSignup();" >Signup</button>
                   </div>
               </form>
             </div>
@@ -166,9 +166,9 @@
                     Please insert an unused user name (case unsensitive)
                   </div>
                 </div>
-                <label for="securitySeed" class="form-label">Security Seed</label>
+                <label for="securitySeedSignup" class="form-label">Security Seed</label>
                 <div class="input-group-seed has-validation">
-                  <input type="text" class="form-control" id="securitySeed" name="securitySeed" value="" required>
+                  <input type="text" class="form-control" id="securitySeedSignup" name="securitySeedSignup" value="" required>
                   <button class="btn btn-outline-secondary" type="button" id="securitySeedButton" onclick="getRandomSeed();" >Generate</button>
                   <div class="invalid-feedback">
                     Please insert a security seed to generate your private keys.
@@ -222,6 +222,7 @@
           <div class="col-sm" id="hashlastblock">
           </div>
         </div>
+        <div id="assetslist"></div>
         <div id="log"></div>
       </div>
 
@@ -248,6 +249,14 @@
             document.getElementById("log").innerHTML = ht;
           } else {
             document.getElementById("log").innerHTML = "HTTP-Error: " + response.status;
+          }
+          let urlals="/assetslist";
+          let responseals = await fetch(urlals);
+          if (responseals.ok) { 
+            let hals = await responseals.text();
+            document.getElementById("assetslist").innerHTML = hals;
+          } else {
+            document.getElementById("assetslist").innerHTML = "HTTP-Error: " + response.status;
           }
         }, 6000);
         async function getRandomSeed(){
@@ -282,14 +291,42 @@
           } else {
             document.getElementById("log").innerHTML = "HTTP-Error: " + response.status;
           }
+          let urlal="/assetslist";
+          let responseal = await fetch(urlal);
+          if (responseal.ok) { 
+            let hal = await responseal.text();
+            document.getElementById("assetslist").innerHTML = hal;
+          } else {
+            document.getElementById("assetslist").innerHTML = "HTTP-Error: " + response.status;
+          }
           let  cx = document.cookie;
+          let errormsgSignup = getCookie("signupFormUsernameError");
+          if(errormsgSignup.length>0){
+            if(window.location.href.indexOf('#loginForm') == -1) {
+                  let signupForm = new bootstrap.Modal(document.getElementById('signupForm'), {keyboard: true});
+                  signupForm.show();
+                  let userNameSignup=getCookie("userNameSignup");
+                  document.getElementById("userNameSignup").setAttribute('value',userNameSignup);
+                  document.getElementById("userNameSignup").setAttribute('class','form-control is-invalid');
+                  return;
+              }
+          }
           if (cx.indexOf("sessiontoken=")==-1 || cx==undefined){
               if(window.location.href.indexOf('#loginForm') == -1) {
                   let loginForm = new bootstrap.Modal(document.getElementById('loginForm'), {keyboard: true});
                   loginForm.show();
+                  let loginFormUserName=getCookie("loginFormUserName");
+                  if(loginFormUserName.length>0){
+                    document.getElementById("userName").setAttribute("value",loginFormUserName);
+                  }
               }
           }
+          if(cx.indexOf("loginFormError")!=-1){
+              let errormsgLogin = getCookie("loginFormError");
+              document.getElementById("errorMsgInputForm").innerHTML =decodeURI(errormsgLogin);
+          }
         }
+
         function checkDataSignup(){
           if(document.getElementById('passwordSignup').value==document.getElementById('passwordSignupR').value) {
             document.getElementById("passwordSignupR").setAttribute("class",'is-valid');
@@ -301,8 +338,28 @@
             return false;
           }
         }
-        
+        function startSignup(){
+          if(window.location.href.indexOf('#signupForm') == -1) {
+                  let signupForm = new bootstrap.Modal(document.getElementById('signupForm'), {keyboard: true});
+                  signupForm.show();
+          }
 
+        }
+        function getCookie(cname){
+          let name = cname + "=";
+          let decodedCookie = decodeURIComponent(document.cookie);
+          let ca = decodedCookie.split(';');
+          for(let i = 0; i <ca.length; i++) {
+              let c = ca[i];
+              while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+              }
+              if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+              }
+          }
+          return "";
+        }
     </script>
     <script>
       (function () {
