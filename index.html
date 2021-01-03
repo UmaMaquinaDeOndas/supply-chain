@@ -91,6 +91,26 @@
           </div>
           </div>
           </div>
+          <!-- Modal  View Asset -->
+          <div class="modal fade" id="viewAsset" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="staticBackdropLabel">View Asset</h5>
+            
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="viewAssetDetails"></div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <button type="button" class="btn btn-primary">Transfer</button>
+                  </div>
+            </div>
+            </div>
+            </div>
+            </div>
+            </div>
           <!-- Modal  Login Form-->
           <div class="modal fade" id="loginForm" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
             <div class="modal-dialog">
@@ -229,6 +249,7 @@
       </did>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
     <script>
+        // recurrent function to update the dashboard
         setInterval(async function() { 
           let url="/lastblock";
           let response = await fetch(url);
@@ -259,6 +280,8 @@
             document.getElementById("assetslist").innerHTML = "HTTP-Error: " + response.status;
           }
         }, 6000);
+
+        //function to get random 24 words for security seed (key generation)
         async function getRandomSeed(){
           let url="/randomseed";
           let response = await fetch(url);
@@ -269,8 +292,9 @@
             securitySeed.setAttribute('value', "HTTP-Error: " + response.status);
           }
         }
-        //function to show log on dashboard
+        //function to show log on dashboard and open different modal views
         async function showDashboard(){
+          // get last block written in the blockchain from the substrate node
           let urllb="/lastblock";
           let responselb = await fetch(urllb);
           if (responselb.ok) { 
@@ -283,6 +307,7 @@
             document.getElementById("hashlastblock").innerHTML = "HTTP-Error: " + response.status;
 
           }
+          // get last log records for the logged user
           let url="/logdata";
           let response = await fetch(url);
           if (response.ok) { 
@@ -291,6 +316,7 @@
           } else {
             document.getElementById("log").innerHTML = "HTTP-Error: " + response.status;
           }
+          // get list of owned assets for the logged user
           let urlal="/assetslist";
           let responseal = await fetch(urlal);
           if (responseal.ok) { 
@@ -299,7 +325,22 @@
           } else {
             document.getElementById("assetslist").innerHTML = "HTTP-Error: " + response.status;
           }
-          let  cx = document.cookie;
+          // show modal view for asset details on request
+          let viewAsset = getCookie("viewAsset");
+          if (viewAsset.length>0){
+            let viewAssetForm = new bootstrap.Modal(document.getElementById('viewAsset'), {keyboard: true});
+              viewAssetForm.show();
+              //viewassetdetails
+              let urlal="/viewassetdetails?assetid="+viewAsset;
+              let responseal = await fetch(urlal);
+              if (responseal.ok) { 
+                let dataal = await responseal.text();
+                document.getElementById("viewAssetDetails").innerHTML = dataal;
+              } else {
+                document.getElementById("viewAssetDetails").innerHTML = "HTTP-Error: " + response.status;
+              }
+          }
+          // show modal signup form with errors if any
           let errormsgSignup = getCookie("signupFormUsernameError");
           if(errormsgSignup.length>0){
             if(window.location.href.indexOf('#loginForm') == -1) {
@@ -311,7 +352,9 @@
                   return;
               }
           }
-          if (cx.indexOf("sessiontoken=")==-1 || cx==undefined){
+          // show modal login if no sessiotoken is set
+          let sessiontoken = getCookie("sessiontoken");
+          if (sessiontoken.length==0){
               if(window.location.href.indexOf('#loginForm') == -1) {
                   let loginForm = new bootstrap.Modal(document.getElementById('loginForm'), {keyboard: true});
                   loginForm.show();
@@ -319,14 +362,18 @@
                   if(loginFormUserName.length>0){
                     document.getElementById("userName").setAttribute("value",loginFormUserName);
                   }
+                  return;
               }
           }
-          if(cx.indexOf("loginFormError")!=-1){
+          // show modal login form erros if any
+          let loginFormError=getCookie("loginFormError");
+          if(loginFormError.length>0){
               let errormsgLogin = getCookie("loginFormError");
               document.getElementById("errorMsgInputForm").innerHTML =decodeURI(errormsgLogin);
+              return;
           }
         }
-
+        // function to check that the passwords are the same in signup form
         function checkDataSignup(){
           if(document.getElementById('passwordSignup').value==document.getElementById('passwordSignupR').value) {
             document.getElementById("passwordSignupR").setAttribute("class",'is-valid');
@@ -338,6 +385,7 @@
             return false;
           }
         }
+        // function to show the modal form for signup
         function startSignup(){
           if(window.location.href.indexOf('#signupForm') == -1) {
                   let signupForm = new bootstrap.Modal(document.getElementById('signupForm'), {keyboard: true});
@@ -345,6 +393,7 @@
           }
 
         }
+        //function to get a cookie from the browser memory
         function getCookie(cname){
           let name = cname + "=";
           let decodedCookie = decodeURIComponent(document.cookie);

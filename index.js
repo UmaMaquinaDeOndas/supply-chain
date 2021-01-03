@@ -74,6 +74,25 @@ async function mainloop(){
         store_asset(req.file.path,req.body,api,sessiontoken,req.file.originalname);
         res.redirect("/");
     });
+    //view asset details (show modal form)
+    app.get('/viewasset',function(req,res){             
+        //console.log(req);
+        if(req.query.assetid>0){
+            res.cookie('viewAsset', encodeURI(req.query.assetid));
+            res.redirect("/");
+        }else{
+            res.redirect("/");
+        }
+    });
+    // call the function to show the details (we call an async function)
+    app.get('/viewassetdetails',function(req,res){  
+        viewAssetDetails(req,res);
+    });
+    // photo download from IPFS 
+    app.route('/photoasset').get(function(req,res)
+    {
+        getHttpFileIpfs(res,req.query.ipfsphotoaddress,req.query.ipfsphotofilename);
+    });
     //login
     app.post('/login',function(req, res) {
         const fs = require('fs')
@@ -117,7 +136,6 @@ async function mainloop(){
                     // set cookie and write log for successfully login
                     // make a token with encrypted username and security seed (random nonce every time)
                     const securityseed=String.fromCharCode.apply(0, securityseedarray)
-                    console.log("Decrypted securityseed: " +securityseed);
                     let sessiontoken=generateSessionToken(securityseed,req.body.userName);
                     //set session token cookie (url encoded)
                     res.cookie('sessiontoken', encodeURI(sessiontoken));
@@ -316,6 +334,32 @@ async function get_last_block(res,api){
     const lastHeader = await api.rpc.chain.getHeader();                
     res.send(lastHeader);
 }
+// function to send and back a file content for http request
+async function getHttpFileIpfs(res,ipfsaddress,ipfsfilename){
+    const fs = require('fs');
+    const IpfsHttpClient = require('ipfs-http-client');
+    const ipfs = IpfsHttpClient();
+    if(ipfsaddress.length==0){
+        res.set('Content-Type', 'text/plain');
+        res.status(404).end('IPFS file not found');
+    }else{
+        if(ipfsfilename.toLowerCase().indexOf(".png")!=-1)
+            res.set('Content-Type', 'image/png');
+        if(ipfsfilename.toLowerCase().indexOf(".jpeg")!=-1 || ipfsfilename.toLowerCase().indexOf(".jpg")!=-1)
+            res.set('Content-Type', 'image/jpeg');
+        if(ipfsfilename.toLowerCase().indexOf(".pdf")!=-1)
+            res.set('Content-Type', 'application/pdf');
+        let content=[]
+        for await (let chunk of ipfs.cat(ipfsaddress)) {
+            for (const item of chunk) {
+                content.push(item); 
+            }
+        }
+        let buf= new Buffer.from(content);
+        res.send(buf);    
+    }
+}
+
 //function to return content of a file name
 function read_file(name){
     const fs = require('fs');
@@ -465,7 +509,7 @@ async function assetsListBody(connection,accountid,res){
         for (i = 0; i < results.length; i++) { 
             al=al+"<tr><td>"+results[i].id+"</td>";
             al=al+"<td>"+results[i].serialnumber+"</td>";
-            al=al+"<td>"+results[i].description+"</td>";
+            al=al+'<td><a href="/viewasset?assetid='+results[i].id+'">'+results[i].description+"</a></td>";
             let dtt=`${results[i].dttransaction}`
             al=al+"<td>"+dtt.substr(0,15)+"</td>";
             let dtc=`${results[i].dtapproval}`
@@ -479,6 +523,42 @@ async function assetsListBody(connection,accountid,res){
         res.send(al);
     });     
     connection.end();  
+}
+// async function to generate the asset details
+async function viewAssetDetails(req,res){
+    let connection= await connect_database(); 
+    let ad='<table class="table table-hover" border="1">';
+    if(req.query.assetid>0){
+            let sqlqueryad= "SELECT * FROM assets WHERE id=?";
+            connection.query(
+            {
+                sql: sqlqueryad,
+                values: [req.query.assetid]
+            },
+            function (error, results, fields) {
+                if (error){ throw error;}
+                if (results.length > 0) {
+                    ad = ad + "<tr><td>Unique ID</td><td>" + results[0].id + "</td></tr>";
+                    ad = ad + "<tr><td>Serial Number<td>" + results[0].serialnumber + "</td></tr>";
+                    ad = ad + "<tr><td>Description</td><td>" + results[0].description + "</td></tr>";
+                    ad = ad + '<tr><td>Photo</td><td><img src="/photoasset?ipfsphotoaddress='+encodeURI(results[0].ipfsphotoaddress)+'&ipfsphotofilename='+encodeURI(results[0].ipfsphotofilename)+'" class="img-fluid"></td</tr>';
+                    let dttr = `${results[0].dttransaction}`;
+                    ad = ad + "<tr><td>Date Creation</td><td>" + dttr + "</td></tr>";
+                    ad = ad + "<tr><td>Transaction id</td><td>" + results[0].transactionid + "</td></tr>";
+                    let dta = `${results[0].dtapproval}`;
+                    if (dta == "null") {
+                        dta = "Pending";
+                    }
+                    ad = ad + "<tr><td>Date Approval</td><td>" + dta + "</td></tr>";
+                }
+                ad = ad + "</table>";
+                res.clearCookie('viewAsset');
+                res.send(ad);
+            });           
+    }else{
+        res.send("");            
+    }
+    connection.end();
 }
 // function to create the database and the required table
 function createDatabase(){
