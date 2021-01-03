@@ -1,6 +1,8 @@
 // Web server for Supply Chain User Interface (run by "node index.js" and connect by browsing to http://localhost:3000)
 // You should have Wiv Supply Chain node (Substrate) running in the same machine
 // You should have IPFS node (www.ipfs.io) running in the same machine for storing images
+// You should have MYSQL server (www.mysql.org) running in the same machine.
+
 console.log("100 - Web Server for Supply Chain - ver. 1.00 - Starting");
 let express = require('express');
 const { ApiPromise, WsProvider } = require('@polkadot/api');   
@@ -73,6 +75,10 @@ async function mainloop(){
         let sessiontoken=req.cookies['sessiontoken'];
         store_asset(req.file.path,req.body,api,sessiontoken,req.file.originalname);
         res.redirect("/");
+    });
+    // transfer asset submission
+    app.post('/transferasset',function(req, res) {
+        transferAsset(req,res);
     });
     //view asset details (show modal form)
     app.get('/viewasset',function(req,res){             
@@ -371,6 +377,76 @@ function read_file(name){
         return(undefined);
       }
 }
+// function to transfer asset
+async function transferAsset(req,res){
+        // get variable from the form
+        let sessiontoken=req.cookies['sessiontoken'];
+        let assetid=req.cookies['assetid'];
+        let destinationAccountTransfer=req.cookies['destinationAccountTransfer'];
+        let passwordTransfer=req.cookies['passwordTransfer'];
+        //decrypt security seed from sessiontoken and compute keys and address
+        let sessiontokendecoded = decodeURIComponent(sessiontoken);
+        let b = sessiontokendecoded.split('###');
+        let usernameb64=b[0];
+        let nonceb64=b[1];
+        let encseedb64=b[2];
+        const username = Buffer.from(usernameb64,'base64');
+        const nonce = Buffer.from(nonceb64,'base64');
+        const encseed = Buffer.from(encseedb64,'base64');
+        let securityseedu8 = naclDecrypt(encseed, nonce, SECRETSHA256);
+        let securityseed =u8aToString(securityseedu8);
+        const keyring = new Keyring({ type: 'sr25519' });
+        const loggeduser = keyring.addFromUri(securityseed,{ name: username });
+        const addressAccountOrigin=`${loggeduser.address}`;
+        //check for approval
+        connection= await connect_database();
+        let sqlquery= "SELECT * FROM assets WHERE id=?";
+        await connection.query(
+            {sql: sqlquery,
+            values: [assetid]},
+            async function (error, results, fields) {
+            if (error) throw error;
+            if(results.length==0){
+                res.setCookie("transferAssetError","Asset Id has not been found");
+                res.redirect("/");
+                return;
+            }
+            if(results[0].dtapproval==null){
+                res.setCookie("transferAssetError","Asset has not been yet approved");
+                res.redirect("/");
+                return;
+            }
+            //check validity of asset id (ownership)
+            if(result[0].account(owner)!=addressAccountOrigin){
+                res.setCookie("transferAssetError","Asset does not belong to the logged user");
+                res.redirect("/");
+                return;
+            }
+            write_log(`[info] Transferring Asset - S/N: ${result[0].serialnumber} - Request has been queued`,sessiontoken);
+            console.log(`[info] Transferring Asset - S/N: ${result[0].serialnumber} - Request has been queued`);
+            let assetdata=body.assetDescription;
+            const unsub = await api.tx.wivSupplyChain.transferAsset(assetdata).signAndSend(loggeduser,(result) => {
+                if (result.status.isInBlock) {
+                    console.log(`[info] Transferring Asset - Transaction included at blockHash ${result.status.asInBlock}`);
+                    write_log(`[info] Transferring Asset - Transaction included at blockHash ${result.status.asInBlock}`,sessiontoken);
+                } else if (result.status.isFinalized) {
+                    console.log(`[info] Transferred Asset - Transaction finalized at blockHash ${result.status.asFinalized}`);
+                    write_log(`[info] Transferred Asset - Transaction finalized at blockHash ${result.status.asFinalized}`,sessiontoken);
+                    //store assets in database
+                    //store_asset_db(`${loggeduser.address}`,`${result.status.asFinalized}`,body,ipfsname,originalfilename);
+                    unsub();
+                }
+            });
+        });
+        connection.end();  
+    
+        //check password 
+        //check validity of destination account
+        //check blockchain storage for matching validity
+        //write blockchain for transfer
+        //write database
+        //write log
+}
 // function to store assets in ipfs + blockchain
 async function store_asset(filename,body,api,sessiontoken,originalfilename){
     const IpfsHttpClient = require('ipfs-http-client');
@@ -537,8 +613,10 @@ async function viewAssetDetails(req,res){
             },
             function (error, results, fields) {
                 if (error){ throw error;}
+                let uid=0;
                 if (results.length > 0) {
                     ad = ad + "<tr><td>Unique ID</td><td>" + results[0].id + "</td></tr>";
+                    uid=results[0].id;
                     ad = ad + "<tr><td>Serial Number<td>" + results[0].serialnumber + "</td></tr>";
                     ad = ad + "<tr><td>Description</td><td>" + results[0].description + "</td></tr>";
                     ad = ad + '<tr><td>Photo</td><td><img src="/photoasset?ipfsphotoaddress='+encodeURI(results[0].ipfsphotoaddress)+'&ipfsphotofilename='+encodeURI(results[0].ipfsphotofilename)+'" class="img-fluid"></td</tr>';
@@ -550,8 +628,10 @@ async function viewAssetDetails(req,res){
                         dta = "Pending";
                     }
                     ad = ad + "<tr><td>Date Approval</td><td>" + dta + "</td></tr>";
+                    
                 }
                 ad = ad + "</table>";
+                ad = ad + '<input type="hidden" name="assetid" value="'+uid+'">'
                 res.clearCookie('viewAsset');
                 res.send(ad);
             });           

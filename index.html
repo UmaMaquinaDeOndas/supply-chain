@@ -46,8 +46,6 @@
           <div class="modal-content">
           <div class="modal-header">
           <h5 class="modal-title" id="staticBackdropLabel">New Asset</h5>
-          
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
             <form class="row g-3 needs-validation" action="/addasset" method="post" enctype="multipart/form-data" novalidate>
@@ -97,15 +95,33 @@
             <div class="modal-content">
             <div class="modal-header">
             <h5 class="modal-title" id="staticBackdropLabel">View Asset</h5>
-            
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+              <form class="row g-3 needs-validation" action="/transferasset" method="post"  novalidate>
                 <div id="viewAssetDetails"></div>
+                  <label for="destinationAccountTransfer" class="form-label">Destination Account for Transfer </label>
+                  <div class="input-group has-validation">
+                    <input type="text" class="form-control" id="destinationAccountTransfer" name="destinationAccountTransfer" required>
+                    <div class="valid-feedback">
+                      Ok - Please double check the destination account before confirming
+                    </div>
+                    <div class="invalid-feedback">
+                      Please insert a valid destination account
+                    </div>
+                  </div>
+                  <label for="passwordTransfer" class="form-label">Password to confirm Transfer</label>
+                  <div class="input-group has-validation">
+                    <input type="password" class="form-control" id="passwordTransfer" name="passwordTransfer" required>
+                  <div class="invalid-feedback">
+                    Please insert the password of your account.
+                  </div>
+                </div>
+                <div id="errorMsgViewAsset"></div>
                 <div class="modal-footer">
                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                  <button type="button" class="btn btn-primary">Transfer</button>
+                  <button type="submit" class="btn btn-primary">Transfer</button>
                   </div>
+              </form>
             </div>
             </div>
             </div>
@@ -327,7 +343,8 @@
           }
           // show modal view for asset details on request
           let viewAsset = getCookie("viewAsset");
-          if (viewAsset.length>0){
+          let transferAssetError = getCookie("transferAssetError");
+          if (viewAsset.length>0 || transferAssetError.length>0){
             let viewAssetForm = new bootstrap.Modal(document.getElementById('viewAsset'), {keyboard: true});
               viewAssetForm.show();
               //viewassetdetails
@@ -338,6 +355,9 @@
                 document.getElementById("viewAssetDetails").innerHTML = dataal;
               } else {
                 document.getElementById("viewAssetDetails").innerHTML = "HTTP-Error: " + response.status;
+              }
+              if(transferAssetError.length>0){
+                document.getElementById("errorMsgViewAsset").innerHTML =decodeURI(transferAssetError);
               }
           }
           // show modal signup form with errors if any
