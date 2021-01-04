@@ -71,6 +71,11 @@ async function mainloop(){
         let v=read_file("index.html");
         res.send(v);
     });
+    //main ADMIN dashboard loaded from admin.html
+    app.get('/admin',function(req,res){             
+        let v=read_file("admin.html");
+        res.send(v);
+    });
     // new asset submission
     app.post('/addasset', upload.single('inputMainPhoto'), (req, res) => {
         let sessiontoken=req.cookies['sessiontoken'];
@@ -156,7 +161,10 @@ async function mainloop(){
                     //write session log
                     write_log("[info] - user "+req.body.userName+" has logged in.",sessiontoken);
                 }
-                res.redirect("/");    
+                if(req.body.userName=="Admin")
+                    res.redirect("/admin");    
+                else
+                    res.redirect("/");    
             });
         }
         

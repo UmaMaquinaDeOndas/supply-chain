@@ -3,6 +3,12 @@
 A web user interface for Substrate-based WiV Supply Chain
 
 The WiV Supply Chain Pallet allows users to securely collect and store information about each unique asset’s provenance and transaction history, whilst holding and insuring the unique asset in a professionally managed storage facility.
+In the current version a normal user can make:
+- Signup (settings 24 words secret seed)
+- Login (using a password set in the signup)
+- Logout (to remove any trace from the browser)
+- Add Assets (write a new assets in the blockchain, subject to approval from "Admin")
+- Transfer Assets (once it has been approved from Admin as valid asset)
 
 ## Running the UI
 
@@ -60,12 +66,17 @@ http://localhost:3000
 The Node generate a few accounts with active deposit that are required to make and blockchain writing.
 You can use the following "well-know" accounts for testing:
 
-name: alice
+username: Alice
 secret seed: bottom drive obey lake curtain smoke basket hold race lonely fit walk//Alice
 account: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
 
-name: bob
+username: Bob
 secret seed: bottom drive obey lake curtain smoke basket hold race lonely fit walk//Bob
 account: 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
 
-Please use exactly the secret seed above from signup.
+username: Admin
+secret seed: bottom drive obey lake curtain smoke basket hold race lonely fit walk//Admin
+account: 
+Admin is the super user enabled to approve the new assets. An asset cannot be transferred when the approval is pending.
+
+**** Please use exactly the secret seeds above, in the signup form ***

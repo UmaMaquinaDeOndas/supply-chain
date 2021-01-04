@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+    <title>Wivtech - Supply Chain on Substrate</title>
+  </head>
+    <body onload="showDashboard()">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#"><img src="/logo" width="30%" heigth="30%"><bold>Supply Chain</bold></a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Profile
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                  <li><a class="dropdown-item" href="#loginForm" data-bs-toggle="modal" data-bs-target="#loginForm">Switch Account</a></li>
+                  <li><a class="dropdown-item" href="#logoutForm" data-bs-toggle="modal" data-bs-target="#logoutForm">Logout</a></li>
+                  <li><a class="dropdown-item" href="#signupForm" data-bs-toggle="modal" data-bs-target="#signupForm">New Account</a></li>
+                </ul>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Assets
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                  <li><a class="dropdown-item" href="#addAsset" data-bs-toggle="modal" data-bs-target="#addAsset">New Asset</a></li>
+                  <li><a class="dropdown-item" href="#infoForm" data-bs-toggle="modal" data-bs-target="#infoForm">Info</a></li>
+                </ul>
+              </li>
+            </ul>
+            <form class="d-flex">
+              <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+              <button class="btn btn-outline-success" type="submit">Search</button>
+            </form>
+          </div>
+          <!-- Modal  Add Asset Form-->
+          <div class="modal fade" id="addAsset" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+          <div class="modal-dialog">
+          <div class="modal-content">
+          <div class="modal-header">
+          <h5 class="modal-title" id="staticBackdropLabel">New Asset</h5>
+          </div>
+          <div class="modal-body">
+            <form class="row g-3 needs-validation" action="/addasset" method="post" enctype="multipart/form-data" novalidate>
+              <label for="assetSerialNumber" class="form-label">Serial Number</label>
+              <div class="input-group has-validation">
+                <input type="text" class="form-control" id="assetId" name="assetSerialNumber" required>
+                <div class="valid-feedback">
+                  Ok - Duplicated values will be verified after submission  
+                </div>
+                <div class="invalid-feedback">
+                  Please insert a unique id or serial number of the asset.
+                </div>
+              </div>
+              <label for="assetDescription" class="form-label">Description</label>
+                <div class="input-group-description has-validation">
+                  <textarea class="form-control" id="assetDescription" name="assetDescription" height="3" maxlength="2048" required></textarea>
+                  <div class="valid-feedback">
+                    Ok - Description is acceptable in any format and character type
+                  </div>
+                  <div class="invalid-feedback">
+                    Please insert a description of the asset
+                  </div>
+                </div>
+              <div class="input-group-photo has-validation"></div>
+                <input type="file" class="form-control" id="inputMainPhoto" name="inputMainPhoto" required>
+                <label class="input-group-text" for="inputMainPhoto">for main photo</label>
+                <div class="valid-feedback">
+                  Ok - any photo format is acceptable 
+                </div>
+                <div class="invalid-feedback">
+                  Please select a photo of your asset
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </form>
+          </div>
+          </div>
+          </div>
+          </div>
+          </div>
+          <!-- Modal  View Asset -->
+          <div class="modal fade" id="viewAsset" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="staticBackdropLabel">View Asset</h5>
+            </div>
+            <div class="modal-body">
+              <form class="row g-3 needs-validation" action="/transferasset" method="post"  novalidate>
+                <div id="viewAssetDetails"></div>
+                  <label for="destinationAccountTransfer" class="form-label">Destination Account for Transfer </label>
+                  <div class="input-group has-validation">
+                    <input type="text" class="form-control" id="destinationAccountTransfer" name="destinationAccountTransfer" required>
+                    <div class="valid-feedback">
+                      Ok - Please double check the destination account before confirming
+                    </div>
+                    <div class="invalid-feedback">
+                      Please insert a valid destination account
+                    </div>
+                  </div>
+                  <label for="passwordTransfer" class="form-label">Password to confirm Transfer</label>
+                  <div class="input-group has-validation">
+                    <input type="password" class="form-control" id="passwordTransfer" name="passwordTransfer" required>
+                  <div class="invalid-feedback">
+                    Please insert the password of your account.
+                  </div>
+                </div>
+                <div id="errorMsgViewAsset"  class="text-danger"></div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="clearCookie('assetView');clearCookie('transferAssetError');clearCookie('destinationAccountTransfer');">Close</button>
+                  <button type="submit" class="btn btn-primary">Transfer</button>
+                  </div>
+              </form>
+            </div>
+            </div>
+            </div>
+            </div>
+            </div>
+          <!-- Modal  Login Form-->
+          <div class="modal fade" id="loginForm" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog">
+            <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="staticBackdropLabel">Login</h5>
+            
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form class="row g-3 needs-validation" action="/login" method="post"  novalidate>
+                <label for="userName" class="form-label">User Name</label>
+                <div class="input-group-description has-validation">
+                  <input type="text" class="form-control" id="userName" name="userName" required>
+                  <div class="invalid-feedback">
+                    Please insert a valid username
+                  </div>
+                </div>
+                <label for="passwordLogin" class="form-label">Password</label>
+                <div class="input-group has-validation">
+                  <input type="password" class="form-control" id="passwordLogin" name="passwordLogin" required>
+                  <div class="invalid-feedback">
+                    Please insert the password for your account.
+                  </div>
+                </div>
+                <div id="errorMsgInputForm" class="text-danger"></div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <button type="submit" class="btn btn-primary">Submit</button>
+                  Don't you have an account? <button class="btn btn-outline-secondary" type="button" id="linktosignup" onclick="startSignup();" >Signup</button>
+                  </div>
+              </form>
+            </div>
+            </div>
+            </div>
+            </div>
+          </div>
+          <!-- Modal  Logout Form-->
+          <div class="modal fade" id="logoutForm" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog">
+            <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="staticBackdropLabel">Logout</h5>
+            </div>
+            <div class="modal-body">
+              <form class="row g-3" action="/logout" method="post"  novalidate>
+                <h4> Do you want to close the session?</h4>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <button type="submit" class="btn btn-primary">Logout</button>
+                </div>
+              </form>
+            </div>
+            </div>
+            </div>
+            </div>
+          </div>
+          <!-- Modal  Info Form-->
+          <div class="modal fade" id="infoForm" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="staticBackdropLabel">General Info</h5>
+              </div>
+              <div class="modal-body">
+                  <h2>Unique Asset Trading Technology</h2>
+                  The WiV blockchain technology allows users to securely collect and store information about each unique asset’s provenance and transaction history, whilst holding and insuring the unique asset in a professionally managed storage facility.
+                  <h2>Blockchain</h2>
+                  Storing a unique asset’s provenance on the blockchain means that the information is very difficult to tamper with. This is because information on the blockchain is distributed globally rather than relying on being stored in a central hub that is vulnerable to hacks and other security concerns.
+                  What this means is that the value of the unique asset that’s listed on WiV could be higher because the provenance is very difficult to tamper with and it is stored transparently. This in turn will give more people the confidence to trade.
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                  </div>
+              </div>
+            </div>
+            </div>
+          </div>
+          <!-- Modal  Signup Form-->
+          <div class="modal fade" id="signupForm" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog">
+            <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="staticBackdropLabel">Signup</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" onload>
+              <form class="row g-3 needs-validation" action="/signup" method="post" onsubmit="return(checkDataSignup());" novalidate >
+                <label for="userNameSignup" class="form-label">User Name</label>
+                <div class="input-group-username-signup has-validation">
+                  <input type="text" class="form-control" id="userNameSignup" name="userNameSignup" required>
+                  <div class="invalid-feedback">
+                    Please insert an unused user name (case unsensitive)
+                  </div>
+                </div>
+                <label for="securitySeedSignup" class="form-label">Security Seed</label>
+                <div class="input-group-seed has-validation">
+                  <input type="text" class="form-control" id="securitySeedSignup" name="securitySeedSignup" value="" required>
+                  <button class="btn btn-outline-secondary" type="button" id="securitySeedButton" onclick="getRandomSeed();" >Generate</button>
+                  <div class="invalid-feedback">
+                    Please insert a security seed to generate your private keys.
+                  </div>
+                </div>
+                <label for="passwordSignup" class="form-label">Password</label>
+                <div class="input-group-password-signup has-validation">
+                  <input type="password" class="form-control" id="passwordSignup" name="passwordSignup" value="" required>
+                  <div class="invalid-feedback">
+                    Please insert a password long the least 8 chars (longer is better)
+                  </div>
+                </div>
+                <label for="passwordSignupR" class="form-label">Repeat Password</label>
+                <div class="input-group-password-signupr has-validation">
+                  <input type="password" class="form-control" id="passwordSignupR" name="passwordSignupR" value="" required>
+                  <div class="invalid-feedback">
+                    Repeat the same password of the previous field to be sure you know it.
+                  </div>
+                </div>
+                <div class="input-group-username-signup has-validation">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" value="buyer" id="buyer" name="category" checked>
+                    <label class="form-check-label" for="buyer">
+                      Buyer
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" value="supplier" id="supplier" name="category" >
+                    <label class="form-check-label" for="supplier">
+                      Supplier
+                    </label>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <button type="submit" class="btn btn-primary">Submit</button>
+                  </div>
+              </form>
+            </div>
+            </div>
+            </div>
+            </div>
+          </div>
+      </nav>
+      <div class="container">
+        <div class="row">
+          <div class="col-sm" id="lastblock">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-sm" id="hashlastblock">
+          </div>
+        </div>
+        <div id="assetslist"></div>
+        <div id="log"></div>
+      </div>
+
+      </did>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
+    <script>
+        // recurrent function to update the dashboard
+        setInterval(async function() { 
+          let url="/lastblock";
+          let response = await fetch(url);
+          if (response.ok) { 
+            let json = await response.json();
+            document.getElementById("lastblock").innerHTML = "<h1>"+json.number+"</h1><h6>Last Block</h6>";
+            document.getElementById("hashlastblock").innerHTML = "<small>"+json.parentHash+"</small><h6>Last Hash</h6>";
+
+          } else {
+            document.getElementById("lastblock").innerHTML = "HTTP-Error: " + response.status;
+            document.getElementById("hashlastblock").innerHTML = "HTTP-Error: " + response.status;
+
+          }
+          let urlt="/logdata";
+          let responset = await fetch(urlt);
+          if (responset.ok) { 
+            let ht = await responset.text();
+            document.getElementById("log").innerHTML = ht;
+          } else {
+            document.getElementById("log").innerHTML = "HTTP-Error: " + response.status;
+          }
+          let urlals="/assetslist";
+          let responseals = await fetch(urlals);
+          if (responseals.ok) { 
+            let hals = await responseals.text();
+            document.getElementById("assetslist").innerHTML = hals;
+          } else {
+            document.getElementById("assetslist").innerHTML = "HTTP-Error: " + response.status;
+          }
+        }, 6000);
+
+        //function to get random 24 words for security seed (key generation)
+        async function getRandomSeed(){
+          let url="/randomseed";
+          let response = await fetch(url);
+          if (response.ok) { 
+            let json = await response.json();
+            securitySeedSignup.setAttribute('value', json.randomseed);
+          } else {
+            securitySeedSignup.setAttribute('value', "HTTP-Error: " + response.status);
+          }
+        }
+        //function to show log on dashboard and open different modal views
+        async function showDashboard(){
+          // get last block written in the blockchain from the substrate node
+          let urllb="/lastblock";
+          let responselb = await fetch(urllb);
+          if (responselb.ok) { 
+            let json = await responselb.json();
+            document.getElementById("lastblock").innerHTML = "<h1>"+json.number+"</h1><h6>Last Block</h6>";
+            document.getElementById("hashlastblock").innerHTML = "<small>"+json.parentHash+"</small><h6>Last Hash</h6>";
+
+          } else {
+            document.getElementById("lastblock").innerHTML = "HTTP-Error: " + response.status;
+            document.getElementById("hashlastblock").innerHTML = "HTTP-Error: " + response.status;
+
+          }
+          // get last log records for the logged user
+          let url="/logdata";
+          let response = await fetch(url);
+          if (response.ok) { 
+            let h = await response.text();
+            document.getElementById("log").innerHTML = h;
+          } else {
+            document.getElementById("log").innerHTML = "HTTP-Error: " + response.status;
+          }
+          // get list of owned assets for the logged user
+          let urlal="/assetslist";
+          let responseal = await fetch(urlal);
+          if (responseal.ok) { 
+            let hal = await responseal.text();
+            document.getElementById("assetslist").innerHTML = hal;
+          } else {
+            document.getElementById("assetslist").innerHTML = "HTTP-Error: " + response.status;
+          }
+          // show modal view for asset details on request
+          let viewAsset = getCookie("viewAsset");
+          let transferAssetError = getCookie("transferAssetError");
+          destinationAccountTransfer=getCookie("destinationAccountTransfer");
+          if (viewAsset.length>0 || transferAssetError.length>0){
+            let viewAssetForm = new bootstrap.Modal(document.getElementById('viewAsset'), {keyboard: true});
+              viewAssetForm.show();
+              //viewassetdetails
+              let urlal="/viewassetdetails?assetid="+viewAsset;
+              let responseal = await fetch(urlal);
+              if (responseal.ok) { 
+                let dataal = await responseal.text();
+                document.getElementById("viewAssetDetails").innerHTML = dataal;
+              } else {
+                document.getElementById("viewAssetDetails").innerHTML = "HTTP-Error: " + response.status;
+              }
+              if(transferAssetError.length>0){
+                document.getElementById("errorMsgViewAsset").innerHTML =decodeURI(transferAssetError);
+              }
+              if(destinationAccountTransfer.length>0){
+                document.getElementById("destinationAccountTransfer").setAttribute('value',decodeURI(destinationAccountTransfer));
+              }
+          }
+          // show modal signup form with errors if any
+          let errormsgSignup = getCookie("signupFormUsernameError");
+          if(errormsgSignup.length>0){
+            if(window.location.href.indexOf('#loginForm') == -1) {
+                  let signupForm = new bootstrap.Modal(document.getElementById('signupForm'), {keyboard: true});
+                  signupForm.show();
+                  let userNameSignup=getCookie("userNameSignup");
+                  let securitySeedSignup=getCookie("securitySeedSignup");
+                  document.getElementById("userNameSignup").setAttribute('value',decodeURI(userNameSignup));
+                  document.getElementById("userNameSignup").setAttribute('class','form-control is-invalid');
+                  document.getElementById("securitySeedSignup").setAttribute('value',decodeURI(securitySeedSignup));
+                  return;
+              }
+          }
+          // show modal login if no sessiotoken is set
+          let sessiontoken = getCookie("sessiontoken");
+          if (sessiontoken.length==0){
+              if(window.location.href.indexOf('#loginForm') == -1) {
+                  let loginForm = new bootstrap.Modal(document.getElementById('loginForm'), {keyboard: true});
+                  loginForm.show();
+                  let loginFormUserName=getCookie("loginFormUserName");
+                  if(loginFormUserName.length>0){
+                    document.getElementById("userName").setAttribute("value",loginFormUserName);
+                  }
+                  return;
+              }
+          }
+          // show modal login form erros if any
+          let loginFormError=getCookie("loginFormError");
+          if(loginFormError.length>0){
+              let errormsgLogin = getCookie("loginFormError");
+              document.getElementById("errorMsgInputForm").innerHTML =decodeURI(errormsgLogin);
+              return;
+          }
+        }
+        // function to check that the passwords are the same in signup form
+        function checkDataSignup(){
+          if(document.getElementById('passwordSignup').value==document.getElementById('passwordSignupR').value) {
+            document.getElementById("passwordSignupR").setAttribute("class",'is-valid');
+            return true; 
+          }
+          else {
+            alert('Passwords are not matching.');
+            document.getElementById("passwordSignupR").setAttribute('class','form-control is-invalid');
+            return false;
+          }
+        }
+        // function to show the modal form for signup
+        function startSignup(){
+          if(window.location.href.indexOf('#signupForm') == -1) {
+                  let signupForm = new bootstrap.Modal(document.getElementById('signupForm'), {keyboard: true});
+                  signupForm.show();
+          }
+
+        }
+        //function to get a cookie from the browser memory
+        function getCookie(cname){
+          let name = cname + "=";
+          let decodedCookie = decodeURIComponent(document.cookie);
+          let ca = decodedCookie.split(';');
+          for(let i = 0; i <ca.length; i++) {
+              let c = ca[i];
+              while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+              }
+              if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+              }
+          }
+          return "";
+        }
+        // function to clear/delete a cookie
+        function clearCookie(cname){
+          document.cookie = cname+'=; Max-Age=-99999999;';  
+        }
+    </script>
+    <script>
+      (function () {
+      'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms)
+        .forEach(function (form) {
+          form.addEventListener('submit', function (event) {
+          if (!form.checkValidity()) {
+            event.preventDefault()
+            event.stopPropagation()
+          }
+          form.classList.add('was-validated')
+        }, false)
+        })
+      })()
+    </script>
+  </body>
+</html>
