@@ -2,7 +2,7 @@ version: 3.7
 
 services:
   app:
-    image: supply-chain-ui:latest
+    image: wivt/supply-chain-ui:latest
     restart: never
     ports:
     - 3000:3000
