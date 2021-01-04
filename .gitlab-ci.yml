@@ -12,7 +12,7 @@ check:
   <<: *env-info
   stage: build
   script:
-  - make init
+  - make dev-init
 
 release:
   <<: *env-info

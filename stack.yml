@@ -1,0 +1,25 @@
+version: 3.7
+
+services:
+  db:
+    image: mariadb:10.5
+    restart: always
+    network_mode: host
+    environment:
+      MYSQL_ROOT_PASSWORD: Aszxqw1234
+
+  app:
+    image: supply-chain-ui:latest
+    restart: never
+    network_mode: host
+    volumes:
+    - /tmp/wiv/keys:/wiv/keys:Z
+    - /tmp/wiv/logs:/wiv/logs:Z
+    - /tmp/wiv/uploads:/wiv/uploads:Z
+    environment:
+      WAIT_HOSTS: db:3306, node:9944
+
+  node:
+    image: wivt/supply-chain:latest
+    restart: never
+    network_mode: host

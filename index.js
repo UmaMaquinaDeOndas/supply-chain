@@ -15,16 +15,20 @@ const { decodeAddress, encodeAddress } = require('@polkadot/keyring');
 
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser')
+
 // customization section - you can change the following constants upon your preferences
 const wsProvider = new WsProvider('ws://127.0.0.1:9944');
-const PATHKEYS="wivkeys";             //path where to store the encrypted login data
-const PATHLOGS="wivlogs";             //path where to store logs for each user
-const PATHUPLOADS="wivuploads/";      //path where to store uploaded files for each user
+const PATHKEYS="keys";             //path where to store the encrypted login data
+const PATHLOGS="logs";             //path where to store logs for each user
+const PATHUPLOADS="uploads/";      //path where to store uploaded files for each user
+
 const SECRET="4191ecdd49b1dc6b03020c2ea44a79e276c69f30"; //change THIS for your installation, it's used to encrypt the session token
+
 const MYSQLIPADDRESS="127.0.0.1";     // ip address of Mysql/Mariadb server (standard port 3306)
 const MYSQLUSERNAME="root";           // username to use for Mysql connection
 const MYSQLPWD="Aszxqw1234";          // password of the username above
 // end customization section 
+
 let SECRETSHA256='';  //global var for SH256 computing
 // execute main loop as async function because of "await" requirements that cannot be execute from the main body
 mainloop();

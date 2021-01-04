@@ -14,27 +14,21 @@ In the current version a normal user can make:
 
 ### Run project with Docker
 
-The simplest way to try it out:
+The simplest way to try it out is to install `Docker` with `docker-compose` and run:
 
 ```sh
-docker run --rm -it --net host wivt/supply-chain-ui:latest
+make init && make start
 ```
 
-Make sure that you have launched the node itself:
+Application data is persisted in a temporary folder `/tmp/wiv` and will be erased after reboot.
+
+You can also use this file with `docker stack` instead of `docker-compose`.
+
+In order to stop the application run:
 
 ```sh
-docker run --rm -it --net host wivt/supply-chain:latest
+make stop
 ```
-
-If you want to persist keys and logs, then bind `wivkeys` and `wivlogs` directories:
-```sh
-docker run --rm -it --net host \
-    -v /tmp/wivlogs:/wivlogs:Z \
-    -v /tmp/wivkeys:/wivkeys:Z \
-    wivt/supply-chain-ui:latest
-```
-
-Here, `:Z` suffix is necessary only for systems enabling SELinux.
 
 ### Run project from sources
 
