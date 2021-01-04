@@ -18,7 +18,7 @@ services:
     ports:
     - 9944:9944
     volumes:
-    - /tmp/wiv/node:/data
+    - /tmp/wiv/node:/data:Z
     restart: never
 
   db:

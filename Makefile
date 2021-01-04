@@ -7,6 +7,7 @@ DOCKER ?= docker #you can use "podman" as well
 init:
 	mkdir -p /tmp/wiv/{logs,keys,uploads}
 	mkdir -p /tmp/wiv/{node,ipfs,db}
+	docker-compose -f stack.yml pull
 
 .PHONY: start
 start:
