@@ -31,7 +31,7 @@
                 </a>
                 <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                   <li><a class="dropdown-item" href="#addAsset" data-bs-toggle="modal" data-bs-target="#addAsset">New Asset</a></li>
-                  <li><a class="dropdown-item" href="#transferAsset" data-bs-toggle="modal" data-bs-target="#transferAsset">Transfer Asset</a></li>
+                  <li><a class="dropdown-item" href="#infoForm" data-bs-toggle="modal" data-bs-target="#infoForm">Info</a></li>
                 </ul>
               </li>
             </ul>
@@ -116,9 +116,9 @@
                     Please insert the password of your account.
                   </div>
                 </div>
-                <div id="errorMsgViewAsset"></div>
+                <div id="errorMsgViewAsset"  class="text-danger"></div>
                 <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="clearCookie('assetView');clearCookie('transferAssetError');clearCookie('destinationAccountTransfer');">Close</button>
                   <button type="submit" class="btn btn-primary">Transfer</button>
                   </div>
               </form>
@@ -184,7 +184,26 @@
             </div>
             </div>
           </div>
-          
+          <!-- Modal  Info Form-->
+          <div class="modal fade" id="infoForm" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="staticBackdropLabel">General Info</h5>
+              </div>
+              <div class="modal-body">
+                  <h2>Unique Asset Trading Technology</h2>
+                  The WiV blockchain technology allows users to securely collect and store information about each unique asset’s provenance and transaction history, whilst holding and insuring the unique asset in a professionally managed storage facility.
+                  <h2>Blockchain</h2>
+                  Storing a unique asset’s provenance on the blockchain means that the information is very difficult to tamper with. This is because information on the blockchain is distributed globally rather than relying on being stored in a central hub that is vulnerable to hacks and other security concerns.
+                  What this means is that the value of the unique asset that’s listed on WiV could be higher because the provenance is very difficult to tamper with and it is stored transparently. This in turn will give more people the confidence to trade.
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                  </div>
+              </div>
+            </div>
+            </div>
+          </div>
           <!-- Modal  Signup Form-->
           <div class="modal fade" id="signupForm" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
             <div class="modal-dialog">
@@ -212,14 +231,14 @@
                 </div>
                 <label for="passwordSignup" class="form-label">Password</label>
                 <div class="input-group-password-signup has-validation">
-                  <input type="text" class="form-control" id="passwordSignup" name="passwordSignup" value="" required>
+                  <input type="password" class="form-control" id="passwordSignup" name="passwordSignup" value="" required>
                   <div class="invalid-feedback">
                     Please insert a password long the least 8 chars (longer is better)
                   </div>
                 </div>
                 <label for="passwordSignupR" class="form-label">Repeat Password</label>
                 <div class="input-group-password-signupr has-validation">
-                  <input type="text" class="form-control" id="passwordSignupR" name="passwordSignupR" value="" required>
+                  <input type="password" class="form-control" id="passwordSignupR" name="passwordSignupR" value="" required>
                   <div class="invalid-feedback">
                     Repeat the same password of the previous field to be sure you know it.
                   </div>
@@ -303,9 +322,9 @@
           let response = await fetch(url);
           if (response.ok) { 
             let json = await response.json();
-            securitySeed.setAttribute('value', json.randomseed);
+            securitySeedSignup.setAttribute('value', json.randomseed);
           } else {
-            securitySeed.setAttribute('value', "HTTP-Error: " + response.status);
+            securitySeedSignup.setAttribute('value', "HTTP-Error: " + response.status);
           }
         }
         //function to show log on dashboard and open different modal views
@@ -344,6 +363,7 @@
           // show modal view for asset details on request
           let viewAsset = getCookie("viewAsset");
           let transferAssetError = getCookie("transferAssetError");
+          destinationAccountTransfer=getCookie("destinationAccountTransfer");
           if (viewAsset.length>0 || transferAssetError.length>0){
             let viewAssetForm = new bootstrap.Modal(document.getElementById('viewAsset'), {keyboard: true});
               viewAssetForm.show();
@@ -359,6 +379,9 @@
               if(transferAssetError.length>0){
                 document.getElementById("errorMsgViewAsset").innerHTML =decodeURI(transferAssetError);
               }
+              if(destinationAccountTransfer.length>0){
+                document.getElementById("destinationAccountTransfer").setAttribute('value',decodeURI(destinationAccountTransfer));
+              }
           }
           // show modal signup form with errors if any
           let errormsgSignup = getCookie("signupFormUsernameError");
@@ -367,8 +390,10 @@
                   let signupForm = new bootstrap.Modal(document.getElementById('signupForm'), {keyboard: true});
                   signupForm.show();
                   let userNameSignup=getCookie("userNameSignup");
-                  document.getElementById("userNameSignup").setAttribute('value',userNameSignup);
+                  let securitySeedSignup=getCookie("securitySeedSignup");
+                  document.getElementById("userNameSignup").setAttribute('value',decodeURI(userNameSignup));
                   document.getElementById("userNameSignup").setAttribute('class','form-control is-invalid');
+                  document.getElementById("securitySeedSignup").setAttribute('value',decodeURI(securitySeedSignup));
                   return;
               }
           }
@@ -428,6 +453,10 @@
               }
           }
           return "";
+        }
+        // function to clear/delete a cookie
+        function clearCookie(cname){
+          document.cookie = cname+'=; Max-Age=-99999999;';  
         }
     </script>
     <script>

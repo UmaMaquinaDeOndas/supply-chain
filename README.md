@@ -38,6 +38,8 @@ But if you want to hack on base of it, then you are welcome.
 Install [Node.js](https://nodejs.org/en/download/).
 Install [Yarn](https://yarnpkg.com/lang/en/docs/install/).
 Install [Ipfs](https://ipfs.io).
+Install [Mysql Server](https://www.mysql.org) and configure an user: root password: Aszxqw1234 enabled to create database. 
+The app will create the required database and tables.
 
 Install dependencies from the project's folder with the following command:
 
@@ -54,3 +56,16 @@ node index.js
 
 Once the front-end server is running direct your browser to this URL:
 http://localhost:3000
+
+The Node generate a few accounts with active deposit that are required to make and blockchain writing.
+You can use the following "well-know" accounts for testing:
+
+name: alice
+secret seed: bottom drive obey lake curtain smoke basket hold race lonely fit walk//Alice
+account: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+
+name: bob
+secret seed: bottom drive obey lake curtain smoke basket hold race lonely fit walk//Bob
+account: 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
+
+Please use exactly the secret seed above from signup.
