@@ -5,9 +5,8 @@ DOCKER ?= docker #you can use "podman" as well
 
 .PHONY: init
 init:
-	mkdir -p /tmp/wiv/logs
-	mkdir -p /tmp/wiv/keys
-	mkdir -p /tmp/wiv/uploads
+	mkdir -p /tmp/wiv/{logs,keys,uploads}
+	mkdir -p /tmp/wiv/{node,ipfs,db}
 
 .PHONY: start
 start:

@@ -1,25 +1,41 @@
 version: 3.7
 
 services:
-  db:
-    image: mariadb:10.5
-    restart: always
-    network_mode: host
-    environment:
-      MYSQL_ROOT_PASSWORD: Aszxqw1234
-
   app:
     image: supply-chain-ui:latest
     restart: never
-    network_mode: host
+    ports:
+    - 3000:3000
     volumes:
     - /tmp/wiv/keys:/wiv/keys:Z
     - /tmp/wiv/logs:/wiv/logs:Z
     - /tmp/wiv/uploads:/wiv/uploads:Z
     environment:
-      WAIT_HOSTS: db:3306, node:9944
+      WAIT_HOSTS: db:3306, node:9944, ipfs:5001
 
   node:
     image: wivt/supply-chain:latest
+    ports:
+    - 9944:9944
+    volumes:
+    - /tmp/wiv/node:/data
     restart: never
-    network_mode: host
+
+  db:
+    image: mariadb:10.5
+    restart: always
+    ports:
+    - 3306:3306
+    volumes:
+    - /tmp/wiv/db:/var/lib/mysql:Z
+    environment:
+      MYSQL_ROOT_PASSWORD: Aszxqw1234
+
+  ipfs:
+    image: ipfs/go-ipfs:release
+    restart: always
+    ports:
+    - 4001:4001
+    - 5001:5001
+    volumes:
+    - /tmp/wiv/ipfs:/data/ipfs:Z
