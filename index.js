@@ -3,7 +3,7 @@
 // You should have IPFS node (www.ipfs.io) running in the same machine for storing images
 // You should have MYSQL server (www.mysql.org) running in the same machine.
 
-console.log("100 - Web Server for Supply Chain - ver. 1.00 - Starting");
+console.log("[info] - Web Server for Supply Chain - ver. 1.00 - Starting");
 let express = require('express');
 const { ApiPromise, WsProvider } = require('@polkadot/api');   
 const { Keyring } = require('@polkadot/api');
@@ -60,7 +60,7 @@ async function mainloop(){
             if (err) {
                 console.log(err)
             } else {
-                console.log("120 - New directory "+PATHLOGS+" successfully created.")
+                console.log("[info] - New directory "+PATHLOGS+" successfully created.")
             }
         });
     }
@@ -83,7 +83,6 @@ async function mainloop(){
     });
     //view asset details (show modal form)
     app.get('/viewasset',function(req,res){             
-        //console.log(req);
         if(req.query.assetid>0){
             res.cookie('viewAsset', encodeURI(req.query.assetid));
             res.redirect("/");
@@ -125,7 +124,7 @@ async function mainloop(){
                 hash.on('readable', () => {
                     const data = hash.read();
                     if (data) {
-                        console.log("hash: "+data.toString('hex'));
+                        console.log("[info] hash of received password: "+data.toString('hex'));
                     }
                 });
                 hash.write(req.body.passwordLogin);
@@ -170,7 +169,6 @@ async function mainloop(){
             let b = sessiontoken.split('###');
             let username=Buffer.from(b[0],'base64');
             let filename='./'+PATHLOGS+'/'+username+".log";
-            console.log('remove: '+filename);
             fs.unlinkSync(filename);
         }
         //clear all cookies
@@ -203,9 +201,9 @@ async function mainloop(){
         if (!fs.existsSync("./"+PATHKEYS)) {
             fs.mkdir("./"+PATHKEYS, function(err) {
                 if (err) {
-                    console.log(err)
+                    console.log("error] - ",err)
                 } else {
-                    console.log("110 - New directory "+PATHKEYS+" successfully created.")
+                    console.log("[info] - New directory "+PATHKEYS+" successfully created.")
                 }
             });
         }
@@ -214,7 +212,7 @@ async function mainloop(){
         hash.on('readable', () => {
             const data = hash.read();
             if (data) {
-                console.log("hash: "+data.toString('hex'));
+                console.log("[info] hash: "+data.toString('hex'));
             }
         });
         hash.write(req.body.passwordSignup);
@@ -228,11 +226,9 @@ async function mainloop(){
         let n64 = n.toString('base64');
         let encb64=n64+"###"+d64;
         //store security seed
-        console.log("filename: "+filename);
-        console.log("encryptedkeys:"+encb64);
         fs.writeFile(filename, encb64, function (err) {
             if (err) {
-              return console.log(err);
+              return console.log("[error] - ",err);
             }
           });
         //store users in users table
@@ -302,12 +298,6 @@ async function mainloop(){
         
     });
     //edit asset submission
-    app.route('/editasset').get(function(req,res)
-    {
-        res.send("");
-        console.log(req.query.v);
-    });
-    //edit asset submission
     app.route('/debug').get(function(req,res)
     {
         const accounts = keyring.getAccounts();
@@ -331,7 +321,7 @@ async function mainloop(){
     });
 
     // listening to server port
-    console.log("101 - listening for connections on port 3000...");
+    console.log("[info] - listening for connections on port 3000...");
     let server=app.listen(3000,function() {});
 }
 
@@ -500,9 +490,6 @@ async function transferAsset(req,res,api){
             });
         });
         connection.end();  
-        //TODO: check validity of destination account
-        //TODO: check blockchain storage for matching validity
-
 }
 // function to store assets in ipfs + blockchain
 async function store_asset(filename,body,api,sessiontoken,originalfilename){
@@ -569,7 +556,7 @@ function write_log(d,sessiontoken){
     let username=Buffer.from(b[0],'base64');
     const fs = require('fs')
     let filename='./'+PATHLOGS+'/'+username+".log";
-    console.log("130 - Writing log to "+filename+" ["+d+"]");
+    console.log("[info] - Writing log to "+filename+" ["+d+"]");
     let dt=new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')
     //dtlog='<div class="row"><div class="col-sm">'+dt+'</div><div class="col-sm">'+d+'</div></div>\n';
     let dtlog='<tr><td>'+dt+'</td><td>'+d+'</td></tr>\n';
@@ -587,7 +574,6 @@ function generateSessionToken(securityseed,username){
     let usernameb64 = ub.toString('base64');
     // build session token
     let sessiontoken=usernameb64+"###"+nonceb64+"###"+encryptedb64;
-    console.log("generate session token:"+sessiontoken);
     return(sessiontoken);
 }
 // function to store an asset in the assets table
@@ -808,7 +794,6 @@ function createDatabase(){
                 `transfertransactionid varchar(128) DEFAULT '' NOT NULL,\n`+
                 `dttransfertransaction DATETIME\n`+
                 `)`;
-    //console.log(q);
     connection.query(q,function (error, results, fields) {
         if (error) throw error;
     });
