@@ -99,9 +99,22 @@ async function mainloop(){
             res.redirect("/");
         }
     });
+    //view asset details (show modal form)
+    app.get('/viewassetadmin',function(req,res){             
+        if(req.query.assetid>0){
+            res.cookie('viewAsset', encodeURI(req.query.assetid));
+            res.redirect("/admin");
+        }else{
+            res.redirect("/admin");
+        }
+    });
     // call the function to show the details (we call an async function)
     app.get('/viewassetdetails',function(req,res){  
         viewAssetDetails(req,res);
+    });
+    // call the function to show the details (we call an async function)
+    app.get('/viewassetdetailsadmin',function(req,res){  
+        viewAssetDetailsAdmin(req,res);
     });
     // photo download from IPFS 
     app.route('/photoasset').get(function(req,res)
@@ -251,7 +264,10 @@ async function mainloop(){
         res.clearCookie('loginFormError');
         //write session log
         write_log("[info] - user "+req.body.userNameSignup+" has logged in.",sessiontoken);
-        res.redirect("/");
+        if(req.body.userNameSignup=="Admin")
+            res.redirect("/admin");    
+        else
+            res.redirect("/");  
     });
     //get last block written on the blockchain
     app.route('/lastblock').get(function(req,res)
@@ -295,17 +311,31 @@ async function mainloop(){
         }
         
     });
-    //get last log data
+    //get assets list
     app.route('/assetslist').get(function(req,res)
     {
         const fs = require('fs')
         sessiontoken=req.cookies.sessiontoken;
-        let logh='<table class="table table-striped"><tr><th>Date/Time</th><th>Event Description</th><tr>';
+        let logh='<center><h2>Assets</h2></center><table class="table table-striped"><tr><th>Id</th><th>Serial Number</th><th>Description</th><th>Dt Creation</th><th>Dt Verification</th><tr></tr>';
         let logf='</table>'
         if(sessiontoken==undefined){
             res.send(logh+logf);
         }else{
             assetsList(res);
+        }
+        
+    });
+    //get assets list
+    app.route('/assetslistadmin').get(function(req,res)
+    {
+        const fs = require('fs')
+        sessiontoken=req.cookies.sessiontoken;
+        let logh='<center><h2>Assets</h2></center><table class="table table-striped"><tr><th>Id</th><th>Serial Number</th><th>Description</th><th>Dt Creation</th><th>Dt Verification</th><th>User Name</th><tr></tr>';
+        let logf='</table>'
+        if(sessiontoken==undefined){
+            res.send(logh+logf);
+        }else{
+            assetsListAdmin(res);
         }
         
     });
@@ -660,6 +690,22 @@ async function assetsList(res){
     });
 
 }
+// function to send back the assets list for the administrator user (search for accountid)
+async function assetsListAdmin(res){
+    let b = sessiontoken.split('###');
+    let usernameb=Buffer.from(b[0],'base64');
+    let username=`${usernameb}`;
+    connection= await connect_database();
+    let sqlquery= "SELECT * FROM users WHERE username=?";
+    await connection.query(
+        {sql: sqlquery,
+        values: [username]},
+        function (error, results, fields) {
+        if (error) throw error;
+        assetsListBodyAdmin(connection,results[0].accountid,res)
+    });
+
+}
 // function to send back the assets list of the logged user (search for assets)
 async function assetsListBody(connection,accountid,res){
     let al='<center><h2>Assets</h2></center><table class="table table-striped"><tr><th>Id</th><th>Serial Number</th><th>Description</th><th>Dt Creation</th><th>Dt Verification</th><tr>';
@@ -687,8 +733,75 @@ async function assetsListBody(connection,accountid,res){
     });     
     connection.end();  
 }
-// async function to generate the asset details
+// function to send back the assets list of the logged user (search for assets)
+async function assetsListBodyAdmin(connection,accountid,res){
+    let al='<center><h2>Assets</h2></center><table class="table table-striped"><tr><th>Id</th><th>Serial Number</th><th>Description</th><th>Dt Creation</th><th>Dt Verification</th><th>Account</th><tr>';
+    let sqlquery= "SELECT * FROM assets where transfertransactionid='' order by id desc";
+    await connection.query(
+        {sql: sqlquery},
+        function (error, results, fields) {
+        if (error) throw error;
+        for (i = 0; i < results.length; i++) { 
+            al=al+"<tr><td>"+results[i].id+"</td>";
+            al=al+"<td>"+results[i].serialnumber+"</td>";
+            al=al+'<td><a href="/viewassetadmin?assetid='+results[i].id+'">'+results[i].description+"</a></td>";
+            let dtt=`${results[i].dttransaction}`
+            al=al+"<td>"+dtt.substr(0,15)+"</td>";
+            let dtc=`${results[i].dtapproval}`
+            if(dtc=="null" || dtc==undefined || dtc==null){
+                dtc="Pending"
+            }
+            al=al+"<td>"+dtc.substr(0,15)+"</td>";
+            al=al+"<td>"+results[i].accountowner.substr(0,8)+".."+ +results[i].accountowner.substr(44,4)+"</td>";
+            al=al+"</tr>"
+        }
+        al=al+"</table>";
+        res.send(al);
+    });     
+    connection.end();  
+}
+// async function to generate the asset details (normal user)
 async function viewAssetDetails(req,res){
+    let connection= await connect_database(); 
+    let ad='<table class="table table-hover" border="1">';
+    if(req.query.assetid>0){
+            let sqlqueryad= "SELECT * FROM assets WHERE id=?";
+            connection.query(
+            {
+                sql: sqlqueryad,
+                values: [req.query.assetid]
+            },
+            function (error, results, fields) {
+                if (error){ throw error;}
+                let uid=0;
+                if (results.length > 0) {
+                    ad = ad + "<tr><td>Unique ID</td><td>" + results[0].id + "</td></tr>";
+                    uid=results[0].id;
+                    ad = ad + "<tr><td>Serial Number<td>" + results[0].serialnumber + "</td></tr>";
+                    ad = ad + "<tr><td>Description</td><td>" + results[0].description + "</td></tr>";
+                    ad = ad + '<tr><td>Photo</td><td><img src="/photoasset?ipfsphotoaddress='+encodeURI(results[0].ipfsphotoaddress)+'&ipfsphotofilename='+encodeURI(results[0].ipfsphotofilename)+'" class="img-fluid"></td</tr>';
+                    let dttr = `${results[0].dttransaction}`;
+                    ad = ad + "<tr><td>Date Creation</td><td>" + dttr + "</td></tr>";
+                    ad = ad + "<tr><td>Transaction id</td><td>" + results[0].transactionid + "</td></tr>";
+                    let dta = `${results[0].dtapproval}`;
+                    if (dta == "null") {
+                        dta = "Pending";
+                    }
+                    ad = ad + "<tr><td>Date Approval</td><td>" + dta + "</td></tr>";
+                    
+                }
+                ad = ad + "</table>";
+                ad = ad + '<input type="hidden" name="assetid" value="'+uid+'">'
+                res.clearCookie('viewAsset');
+                res.send(ad);
+            });           
+    }else{
+        res.send("");            
+    }
+    connection.end();
+}
+// async function to generate the asset details (administrator user)
+async function viewAssetDetailsAdmin(req,res){
     let connection= await connect_database(); 
     let ad='<table class="table table-hover" border="1">';
     if(req.query.assetid>0){
