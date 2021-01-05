@@ -106,20 +106,20 @@
                       Ok - Please double check the destination account before confirming
                     </div>
                     <div class="invalid-feedback">
-                      Please insert a valid destination account (for transfer only)
+                      Please insert a valid destination account
                     </div>
                   </div>
                   <label for="passwordTransfer" class="form-label">Password to confirm Transfer</label>
                   <div class="input-group has-validation">
                     <input type="password" class="form-control" id="passwordTransfer" name="passwordTransfer" required>
                   <div class="invalid-feedback">
-                    Please insert the password of admin account (for approval/transfer).
+                    Please insert the password of Admin account (for approval/transfer).
                   </div>
                 </div>
                 <div id="errorMsgViewAsset"  class="text-danger"></div>
                 <div class="modal-footer">
                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="clearCookie('assetView');clearCookie('transferAssetError');clearCookie('destinationAccountTransfer');">Close</button>
-                  <button type="submit" class="btn btn-primary">Transfer</button>
+                  <button type="submit" id="transferAssettButton" name="transferAssettButton" value="transfer" class="btn btn-primary">Transfer</button>
                   <div id="approvalButton"></div>
                   </div>
               </form>
@@ -388,7 +388,7 @@
               if(destinationAccountTransfer.length>0){
                 document.getElementById("destinationAccountTransfer").setAttribute('value',decodeURI(destinationAccountTransfer));
               }
-              document.getElementById("approvalButton").innerHTML ='<button type="submit" class="btn btn-primary">Approve</button>';
+              document.getElementById("approvalButton").innerHTML ='<button type="submit" id="approveAssettButton" name="approveAssettButton" value="approve" class="btn btn-primary">Approve</button>';
           }
           // show modal signup form with errors if any
           let errormsgSignup = getCookie("signupFormUsernameError");

@@ -88,7 +88,12 @@ async function mainloop(){
     });
     // transfer asset submission
     app.post('/transferasset',function(req, res) {
-        transferAsset(req,res,api);
+        console.log(req.body);
+        if(typeof req.body.approveAssettButton === 'undefined')
+            transferAsset(req,res,api);
+        else
+            approveAsset(req,res,api);
+
     });
     //view asset details (show modal form)
     app.get('/viewasset',function(req,res){             
@@ -102,8 +107,7 @@ async function mainloop(){
     //view asset details (show modal form)
     app.get('/viewassetadmin',function(req,res){             
         if(req.query.assetid>0){
-            res.cookie('viewAsset', encodeURI(req.query.assetid));
-            res.redirect("/admin");
+            viewAssetPrepare(req.query.assetid,res);
         }else{
             res.redirect("/admin");
         }
@@ -194,7 +198,8 @@ async function mainloop(){
             let b = sessiontoken.split('###');
             let username=Buffer.from(b[0],'base64');
             let filename='./'+PATHLOGS+'/'+username+".log";
-            fs.unlinkSync(filename);
+            if(fs.existsSync(filename))
+                fs.unlinkSync(filename);
         }
         //clear all cookies
         res.clearCookie('loginFormError');
@@ -401,6 +406,8 @@ async function getHttpFileIpfs(res,ipfsaddress,ipfsfilename){
 //function to return content of a file name
 function read_file(name){
     const fs = require('fs');
+    if(!fs.existsSync(name))
+        return(undefined);
     try {
         const data = fs.readFileSync(name, 'utf8')
         return(data);
@@ -439,7 +446,10 @@ async function transferAsset(req,res,api){
             res.cookie('viewAsset', encodeURI(assetid));
             res.cookie('destinationAccountTransfer', encodeURI(destinationAccountTransfer));
             console.log("[info] transferAsset() - Password is not valid");
-            res.redirect("/");
+            if(username=="Admin")
+                res.redirect("/admin");
+            else
+                res.redirect("/");
             return;
         }
         //check for destination account validity:
@@ -448,7 +458,10 @@ async function transferAsset(req,res,api){
             res.cookie('viewAsset', encodeURI(assetid));
             res.cookie('destinationAccountTransfer', encodeURI(destinationAccountTransfer));
             console.log("[info] transferAsset() - Destination Account is not valid");
-            res.redirect("/");
+            if(username=="Admin")
+                res.redirect("/admin");
+            else
+                res.redirect("/");
             return;
         }
         //check for approval
@@ -464,7 +477,10 @@ async function transferAsset(req,res,api){
                 res.cookie('viewAsset', encodeURI(assetid));
                 res.cookie('destinationAccountTransfer', encodeURI(destinationAccountTransfer));
                 console.log("[info] transferAsset() -Asset Id has not been found");
-                res.redirect("/");
+                if(username=="Admin")
+                    res.redirect("/admin");
+                 else
+                    res.redirect("/");
                 return;
             }
             if(results[0].dtapproval==null){
@@ -472,16 +488,22 @@ async function transferAsset(req,res,api){
                 res.cookie('viewAsset', encodeURI(assetid));
                 res.cookie('destinationAccountTransfer', encodeURI(destinationAccountTransfer));
                 console.log("[info] transferAsset() - Asset has not yet been approved. Transfer is not possible.");
-                res.redirect("/");
+                if(username=="Admin")
+                    res.redirect("/admin");
+                else
+                    res.redirect("/");
                 return;
             }
             //check validity of asset id (ownership)
-            if(results[0].accountowner!=addressAccountOrigin){
+            if(results[0].accountowner!=addressAccountOrigin && username!="Admin"){
                 res.cookie("transferAssetError","Asset does not belong to the logged user");
                 res.cookie('viewAsset', encodeURI(assetid));
                 res.cookie('destinationAccountTransfer', encodeURI(destinationAccountTransfer));
                 console.log("[info] transferAsset() - Asset does not belong to the logged user");
-                res.redirect("/");
+                if(username=="Admin")
+                    res.redirect("/admin");
+                else
+                    res.redirect("/");
                 return;
             }
             write_log(`[info] Transferring Asset - S/N: ${results[0].serialnumber} - Request has been queued`,sessiontoken);
@@ -516,15 +538,18 @@ async function transferAsset(req,res,api){
             assetdata=assetdata+'"accountowner":"'+accountownerb64+'","accountapprover":"'+accountapproverb64+'","transactionid":"'+transactionidb64+'",';
             assetdata=assetdata+'"dttransaction":"'+dttransactionb64+'","dtapproval":"'+dtapprovalb64+'"';
             assetdata=assetdata+'"destinationaccount":"'+destinationAccountTransfer+'"}';
-            res.redirect('/');
+            if(username=="Admin")
+                    res.redirect("/admin");
+            else
+                    res.redirect("/");
             //write blockchain for transfer
             const unsub = await api.tx.wivSupplyChain.transferAsset(assetdata).signAndSend(loggeduser,(result) => {
                 if (result.status.isInBlock) {
                     console.log(`[info] Transferring Asset - Transaction included at blockHash ${result.status.asInBlock}`);
                     write_log(`[info] Transferring Asset - Transaction included at blockHash ${result.status.asInBlock}`,sessiontoken);
                 } else if (result.status.isFinalized) {
-                    console.log(`[info] Transferred Asset - Transaction finalized at blockHash ${result.status.asFinalized}`);
-                    write_log(`[info] Transferred Asset - Transaction finalized at blockHash ${result.status.asFinalized}`,sessiontoken);
+                    console.log(`[info] Asset transferred - Transaction finalized at blockHash ${result.status.asFinalized}`);
+                    write_log(`[info]  Asset transferred - Transaction finalized at blockHash ${result.status.asFinalized}`,sessiontoken);
                     //store assets in database
                     transfer_asset_db(results,destinationAccountTransfer,`${result.status.asFinalized}`);
                     unsub();
@@ -533,6 +558,134 @@ async function transferAsset(req,res,api){
         });
         connection.end();  
 }
+// function to approve asset
+async function approveAsset(req,res,api){
+    // get variable from the form
+    let sessiontoken=req.cookies['sessiontoken'];
+    let assetid=req.body.assetid;
+    let destinationAccountTransfer=req.body.destinationAccountTransfer;
+    let passwordTransfer=req.body.passwordTransfer;
+    // clean previous cookies
+    res.clearCookie('transferAssetError');
+    res.clearCookie('viewAsset');
+    //decrypt security seed from sessiontoken and compute keys and address
+    let sessiontokendecoded = decodeURIComponent(sessiontoken);
+    let b = sessiontokendecoded.split('###');
+    let usernameb64=b[0];
+    let nonceb64=b[1];
+    let encseedb64=b[2];
+    const username = Buffer.from(usernameb64,'base64');
+    const nonce = Buffer.from(nonceb64,'base64');
+    const encseed = Buffer.from(encseedb64,'base64');
+    let securityseedu8 = naclDecrypt(encseed, nonce, SECRETSHA256);
+    let securityseed =u8aToString(securityseedu8);
+    const keyring = new Keyring({ type: 'sr25519' });
+    const loggeduser = keyring.addFromUri(securityseed,{ name: username });
+    const addressAccountOrigin=`${loggeduser.address}`;
+    // check for password validity
+    if(await verify_password_validity(username,passwordTransfer)==false){
+        res.cookie("transferAssetError","Password is not valid");
+        res.cookie('viewAsset', encodeURI(assetid));
+        res.cookie('destinationAccountTransfer', encodeURI(destinationAccountTransfer));
+        console.log("[info] transferAsset() - Password is not valid");
+        res.redirect("/admin");
+        return;
+    }
+    //check for destination account validity:
+    if(verifyAccountValidity(destinationAccountTransfer)==false){
+        res.cookie("transferAssetError","Destination Account is not valid");
+        res.cookie('viewAsset', encodeURI(assetid));
+        res.cookie('destinationAccountTransfer', encodeURI(destinationAccountTransfer));
+        console.log("[info] transferAsset() - Destination Account is not valid");
+        res.redirect("/admin");
+        return;
+    }
+    //check for approval
+    connection= await connect_database();
+    let sqlquery= "SELECT * FROM assets WHERE id=?";
+    await connection.query(
+        {sql: sqlquery,
+        values: [assetid]},
+        async function (error, results, fields) {
+        if (error) throw error;
+        if(results.length==0){
+            res.cookie("transferAssetError","Asset Id has not been found");
+            res.cookie('viewAsset', encodeURI(assetid));
+            res.cookie('destinationAccountTransfer', encodeURI(destinationAccountTransfer));
+            console.log("[info] approveAsset() -Asset Id has not been found");
+            res.redirect("/admin");
+            return;
+        }
+        if(results[0].dtapproval!=null){
+            res.cookie("transferAssetError","Asset has been already approved");
+            res.cookie('viewAsset', encodeURI(assetid));
+            res.cookie('destinationAccountTransfer', encodeURI(destinationAccountTransfer));
+            console.log("[error] approveAsset() - Asset has already been approved");
+            res.redirect("/admin");
+            return;
+        }
+        //check admin access
+        if(username!="Admin"){
+            res.cookie("transferAssetError","Only Administrator can approve and asset in pending status");
+            res.cookie('viewAsset', encodeURI(assetid));
+            res.cookie('destinationAccountTransfer', encodeURI(destinationAccountTransfer));
+            console.log("[error] approveAsset() - Only Administrator can approve and asset in pending status");
+            res.redirect("/admin");
+            return;
+        }
+        write_log(`[info] Approving Asset - S/N: ${results[0].serialnumber} - Request has been queued`,sessiontoken);
+        console.log(`[info] Approving Asset - S/N: ${results[0].serialnumber} - Request has been queued`);
+        // build asset data
+        let idstr=`${results[0].id}`;
+        let buf = Buffer.from(idstr);
+        let idb64 = buf.toString('base64');
+        buf = Buffer.from(results[0].serialnumber);
+        let serialnumberb64 = buf.toString('base64');
+        buf = Buffer.from(results[0].description);
+        let descriptionb64 = buf.toString('base64');
+        buf = Buffer.from(results[0].ipfsphotoaddress);
+        let ipfsphotoaddressb64 = buf.toString('base64');
+        buf = Buffer.from(results[0].ipfsphotofilename);
+        let ipfsphotofilenameb64 = buf.toString('base64');
+        buf = Buffer.from(results[0].accountowner);
+        let accountownerb64 = buf.toString('base64');
+        buf = Buffer.from(addressAccountOrigin);
+        let accountapproverb64 = buf.toString('base64');
+        buf = Buffer.from(results[0].transactionid);
+        let transactionidb64 = buf.toString('base64');
+        buf = Buffer.from(results[0].dttransaction);
+        let dttransactionb64 = buf.toString('base64');
+        //get current time
+        let dtnow = new Date(); 
+        dtnow.toISOString().slice(0, 19).replace('T', ' '); 
+        buf = Buffer.from(dtnow);
+        let dtapprovalb64 = buf.toString('base64');
+        buf = Buffer.from(results[0].metadata);
+        let metadatab64 = buf.toString('base64');
+        let assetdata='{"operation":"approval","id","'+idb64+'","serialnumber":"'+serialnumberb64+'",description"'+descriptionb64+'",';
+        assetdata=assetdata+'"ipfsphotoaddress":"'+ipfsphotoaddressb64+'","ipfsphotofilename""'+ipfsphotofilenameb64+'",';
+        assetdata=assetdata+'"metadata":"'+metadatab64+'",';
+        assetdata=assetdata+'"accountowner":"'+accountownerb64+'","accountapprover":"'+accountapproverb64+'","transactionid":"'+transactionidb64+'",';
+        assetdata=assetdata+'"dttransaction":"'+dttransactionb64+'","dtapproval":"'+dtapprovalb64+'"';
+        assetdata=assetdata+'"destinationaccount":"'+destinationAccountTransfer+'"}';
+        res.redirect('/admin');
+        //write blockchain for transfer
+        const unsub = await api.tx.wivSupplyChain.approveAsset(assetdata).signAndSend(loggeduser,(result) => {
+            if (result.status.isInBlock) {
+                console.log(`[info] Approving Asset - Transaction included at blockHash ${result.status.asInBlock}`);
+                write_log(`[info] Approving Asset - Transaction included at blockHash ${result.status.asInBlock}`,sessiontoken);
+            } else if (result.status.isFinalized) {
+                console.log(`[info] Asset Approved - Transaction finalized at blockHash ${result.status.asFinalized}`);
+                write_log(`[info] Asset Approved - Transaction finalized at blockHash ${result.status.asFinalized}`,sessiontoken);
+                //store assets in database
+                approve_asset_db(addressAccountOrigin,`${result.status.asFinalized}`,results[0].id);
+                unsub();
+            }
+        });
+    });
+    connection.end();  
+}
+
 // function to store assets in ipfs + blockchain
 async function store_asset(filename,body,api,sessiontoken,originalfilename){
     const IpfsHttpClient = require('ipfs-http-client');
@@ -592,7 +745,7 @@ async function store_asset(filename,body,api,sessiontoken,originalfilename){
           }
     });
 }
-//function to add 
+//function to write log file
 function write_log(d,sessiontoken){
     let b = sessiontoken.split('###');
     let username=Buffer.from(b[0],'base64');
@@ -600,7 +753,6 @@ function write_log(d,sessiontoken){
     let filename='./'+PATHLOGS+'/'+username+".log";
     console.log("[info] - Writing log to "+filename+" ["+d+"]");
     let dt=new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')
-    //dtlog='<div class="row"><div class="col-sm">'+dt+'</div><div class="col-sm">'+d+'</div></div>\n';
     let dtlog='<tr><td>'+dt+'</td><td>'+d+'</td></tr>\n';
     fs.appendFileSync(filename, dtlog, 'utf8');
 }
@@ -625,6 +777,18 @@ async function store_asset_db(account,transactionid,body,ipfsphotoaddress,ipfsph
     connection.query(
         {sql: sqlquery,
         values: [body.assetSerialNumber,body.assetDescription,ipfsphotoaddress,ipfsphotofilename,account,transactionid]},
+        function (error, results, fields) {
+        if (error) throw error;
+    });
+    connection.end();  
+}
+// function to approve an asset in the assets table
+async function approve_asset_db(account,transactionid,assetid){
+    connection= await connect_database();
+    let sqlquery= "UPDATE wivsupplychain.assets set dtapproval=now(),transactionidapproval=?,accountapprover=? where id=?";
+    connection.query(
+        {sql: sqlquery,
+        values: [transactionid,account,assetid]},
         function (error, results, fields) {
         if (error) throw error;
     });
@@ -759,6 +923,27 @@ async function assetsListBodyAdmin(connection,accountid,res){
         res.send(al);
     });     
     connection.end();  
+}
+//function to set values in cookies to show the account owner
+async function viewAssetPrepare(assetid,res){
+    let connection= await connect_database(); 
+    let sqlqueryad= "SELECT * FROM assets WHERE id=?";
+    connection.query(
+    {
+        sql: sqlqueryad,
+        values: [assetid]
+    },
+    function (error, results, fields) {
+        if (error){ throw error;}
+        let uid=0;
+        if (results.length > 0) {
+            res.cookie("destinationAccountTransfer",results[0].accountowner);
+            res.cookie('viewAsset', encodeURI(assetid));
+            res.redirect("/admin"); 
+        }
+        
+    });           
+    connection.end();
 }
 // async function to generate the asset details (normal user)
 async function viewAssetDetails(req,res){
@@ -915,6 +1100,7 @@ function createDatabase(){
                 `accountapprover VARCHAR(64) DEFAULT '' NOT NULL,\n`+
                 `transactionid varchar(128) DEFAULT '' NOT NULL,\n`+
                 `dttransaction DATETIME NOT NULL,\n`+
+                `transactionidapproval VARCHAR(128) DEFAULT '',\n`+
                 `dtapproval DATETIME NOT NULL,\n`+
                 `transfertransactionid varchar(128) DEFAULT '' NOT NULL,\n`+
                 `dttransfertransaction DATETIME\n`+
