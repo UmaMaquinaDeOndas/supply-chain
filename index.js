@@ -329,6 +329,10 @@ async function mainloop(){
             let filename='./'+PATHLOGS+'/'+username+".log";
             let log=read_file(filename);
             let logf='</table>'
+            if(log==undefined){
+                res.send(logh+logf);
+                return;
+            }
             let logr=log.split("\n");
             let logs=logh;
             let lst=logs.length-1;
@@ -889,7 +893,12 @@ async function assetsList(res){
         values: [username]},
         function (error, results, fields) {
         if (error) throw error;
-        assetsListBody(connection,results[0].accountid,res)
+        if(results[0]==undefined){
+            let al='<center><h2>Assets</h2></center><table class="table table-striped"><tr><th>Id</th><th>Serial Number</th><th>Description</th><th>Dt Creation</th><th>Dt Verification</th></tr></table>';
+            res.send(al);
+        }else{
+            assetsListBody(connection,results[0].accountid,res)
+        }
     });
 
 }
@@ -905,7 +914,12 @@ async function assetsListAdmin(res){
         values: [username]},
         function (error, results, fields) {
         if (error) throw error;
-        assetsListBodyAdmin(connection,results[0].accountid,res)
+        if(results[0]==undefined){
+            let al='<center><h2>Assets</h2></center><table class="table table-striped"><tr><th>Id</th><th>Serial Number</th><th>Description</th><th>Dt Creation</th><th>Dt Verification</th></tr></table>';
+            res.send(al);
+        }else{
+            assetsListBodyAdmin(connection,results[0].accountid,res)
+        }
     });
 
 }
@@ -1146,7 +1160,7 @@ function createDatabase(){
                 `transactionid varchar(128) DEFAULT '' NOT NULL,\n`+
                 `dttransaction DATETIME NOT NULL,\n`+
                 `transactionidapproval VARCHAR(128) DEFAULT '',\n`+
-                `dtapproval DATETIME NOT NULL,\n`+
+                `dtapproval DATETIME DEFAULT NULL,\n`+
                 `transfertransactionid varchar(128) DEFAULT '' NOT NULL,\n`+
                 `dttransfertransaction DATETIME\n`+
                 `)`;
