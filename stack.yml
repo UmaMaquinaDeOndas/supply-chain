@@ -39,3 +39,7 @@ services:
     - 5001:5001
     volumes:
     - /tmp/wiv/ipfs:/data/ipfs:Z
+    ulimits:
+      nofile:
+        soft: 8192
+        hard: 65536
