@@ -5,8 +5,10 @@ DOCKER ?= docker #you can use "podman" as well
 
 .PHONY: init
 init:
-	mkdir -p /tmp/wiv/{logs,keys,uploads}
-	mkdir -p /tmp/wiv/{node,ipfs,db}
+	if [ -d "/tmp/wiv" ]; then sudo rm -rf /tmp/wiv; fi
+	mkdir /tmp/wiv
+	mkdir /tmp/wiv/{logs,keys,uploads}
+	mkdir /tmp/wiv/{node,ipfs,db}
 	docker-compose -f stack.yml pull
 
 .PHONY: start
