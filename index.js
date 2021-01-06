@@ -36,7 +36,14 @@ mainloop();
 async function mainloop(){
     let fs = require('fs');
     //connect to local substrate node (it will retry automatically the connection if not reachable)
-    const api = await ApiPromise.create({ provider: wsProvider });   
+    const api = await ApiPromise.create({
+        provider: wsProvider,
+        types: {
+            Address: "AccountId",
+            LookupSource: "AccountId"
+        }
+    });
+
     //setup express+multer modules (http server + file upload management)
     let app = express();
     const upload = multer({

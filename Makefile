@@ -1,7 +1,8 @@
 IMAGE ?= supply-chain-ui
 IMAGE_DEV ?= $(IMAGE)-dev
 
-DOCKER ?= docker #you can use "podman" as well
+DOCKER ?= docker                     # you can use "podman" as well
+DOCKER_COMPOSE ?= docker-compose     # and "podman-compose" too
 
 .PHONY: init
 init:
@@ -9,15 +10,15 @@ init:
 	mkdir /tmp/wiv
 	mkdir /tmp/wiv/{logs,keys,uploads}
 	mkdir /tmp/wiv/{node,ipfs,db}
-	docker-compose -f stack.yml pull
+	@$(DOCKER_COMPOSE) -f stack.yml pull
 
 .PHONY: start
 start:
-	docker-compose -f stack.yml up
+	@$(DOCKER_COMPOSE) -f stack.yml up
 
 .PHONY: stop
 stop:
-	docker-compose -f stack.yml down
+	@$(DOCKER_COMPOSE) -f stack.yml down
 
 
 .PHONY: release
