@@ -276,12 +276,12 @@
           </div>
         </div>
         <div class="row">
-          <div class="col-sm" id="lastblock">
-          </div>
+          <div class="col-sm" id="lastblock"></div>
+          <div class="col-sm" id="accountBalance"></div>
         </div>
         <div class="row">
-          <div class="col-sm" id="hashlastblock">
-          </div>
+          <div class="col-sm" id="hashlastblock"></div>
+          <div class="col-sm" id="accountAddress"></div>
         </div>
         <div id="assetslist"></div>
         <div id="log"></div>
@@ -302,6 +302,19 @@
           } else {
             document.getElementById("lastblock").innerHTML = "HTTP-Error: " + response.status;
             document.getElementById("hashlastblock").innerHTML = "HTTP-Error: " + response.status;
+
+          }
+          // get last block written in the blockchain from the substrate node
+          let urlab="/accountbalance";
+          let responseab = await fetch(urlab);
+          if (responseab.ok) { 
+            let jsonab = await responseab.json();
+            document.getElementById("accountBalance").innerHTML = "<h1>"+jsonab.balance+"</h1><h6>Balance</h6>";
+            document.getElementById("accountAddress").innerHTML = "<small>"+jsonab.account+"</small><h6>Account</h6>";
+
+          } else {
+            document.getElementById("accountBalance").innerHTML = "HTTP-Error: " + response.status;
+            document.getElementById("accountAddress").innerHTML = "HTTP-Error: " + response.status;
 
           }
           let urlt="/logdata";
@@ -346,6 +359,19 @@
           } else {
             document.getElementById("lastblock").innerHTML = "HTTP-Error: " + response.status;
             document.getElementById("hashlastblock").innerHTML = "HTTP-Error: " + response.status;
+
+          }
+          // get balance of the account
+          let urlab="/accountbalance";
+          let responseab = await fetch(urlab);
+          if (responseab.ok) { 
+            let jsonab = await responseab.json();
+            document.getElementById("accountBalance").innerHTML = "<h1>"+jsonab.balance+"</h1><h6>Balance</h6>";
+            document.getElementById("accountAddress").innerHTML = "<small>"+jsonab.account+"</small><h6>Account</h6>";
+
+          } else {
+            document.getElementById("accountBalance").innerHTML = "HTTP-Error: " + response.status;
+            document.getElementById("accountAddress").innerHTML = "HTTP-Error: " + response.status;
 
           }
           // get last log records for the logged user
