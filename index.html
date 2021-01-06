@@ -154,7 +154,7 @@
                 </div>
                 <div id="errorMsgInputForm" class="text-danger"></div>
                 <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="clearCookie('loginFormError');clearCookie('loginFormUserName');">Close</button>
                   <button type="submit" class="btn btn-primary">Submit</button>
                   Don't you have an account? <button class="btn btn-outline-secondary" type="button" id="linktosignup" onclick="startSignup();" >Signup</button>
                   </div>
@@ -226,7 +226,7 @@
                   <input type="text" class="form-control" id="securitySeedSignup" name="securitySeedSignup" value="" required>
                   <button class="btn btn-outline-secondary" type="button" id="securitySeedButton" onclick="getRandomSeed();" >Generate</button>
                   <div class="invalid-feedback">
-                    Please insert a security seed to generate your private keys.
+                    Please insert a security seed to generate your private keys (12,15,18,21 or 24 words).
                   </div>
                 </div>
                 <label for="passwordSignup" class="form-label">Password</label>
@@ -258,7 +258,7 @@
                   </div>
                 </div>
                 <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="clearCookie('signupFormUsernameError');clearCookie('signupFormSeedError');">Close</button>
                   <button type="submit" class="btn btn-primary">Submit</button>
                   </div>
               </form>
@@ -270,12 +270,13 @@
       </nav>
       <div class="container">
         <div class="row">
-          <div class="col-sm" id="lastblock">
-          </div>
+          <div class="col-sm" id="lastblock"></div>
+          <div class="col-sm" id="accountBalance"></div>
         </div>
+        
         <div class="row">
-          <div class="col-sm" id="hashlastblock">
-          </div>
+          <div class="col-sm" id="hashlastblock"></div>
+          <div class="col-sm" id="accountAddress"></div>
         </div>
         <div id="assetslist"></div>
         <div id="log"></div>
@@ -296,6 +297,19 @@
           } else {
             document.getElementById("lastblock").innerHTML = "HTTP-Error: " + response.status;
             document.getElementById("hashlastblock").innerHTML = "HTTP-Error: " + response.status;
+
+          }
+          // get balance of the account
+          let urlab="/accountbalance";
+          let responseab = await fetch(urlab);
+          if (responseab.ok) { 
+            let jsonab = await responseab.json();
+            document.getElementById("accountBalance").innerHTML = "<h1>"+jsonab.balance+"</h1><h6>Balance</h6>";
+            document.getElementById("accountAddress").innerHTML = "<small>"+jsonab.account+"</small><h6>Account</h6>";
+
+          } else {
+            document.getElementById("accountBalance").innerHTML = "HTTP-Error: " + response.status;
+            document.getElementById("accountAddress").innerHTML = "HTTP-Error: " + response.status;
 
           }
           let urlt="/logdata";
@@ -342,6 +356,19 @@
             document.getElementById("hashlastblock").innerHTML = "HTTP-Error: " + response.status;
 
           }
+          // get last block written in the blockchain from the substrate node
+          let urlab="/accountbalance";
+          let responseab = await fetch(urlab);
+          if (responseab.ok) { 
+            let jsonab = await responseab.json();
+            document.getElementById("accountBalance").innerHTML = "<h1>"+jsonab.balance+"</h1><h6>Balance</h6>";
+            document.getElementById("accountAddress").innerHTML = "<small>"+jsonab.account+"</small><h6>Account</h6>";
+
+          } else {
+            document.getElementById("accountBalance").innerHTML = "HTTP-Error: " + response.status;
+            document.getElementById("accountAddress").innerHTML = "HTTP-Error: " + response.status;
+
+          }
           // get last log records for the logged user
           let url="/logdata";
           let response = await fetch(url);
@@ -384,15 +411,28 @@
               }
           }
           // show modal signup form with errors if any
-          let errormsgSignup = getCookie("signupFormUsernameError");
-          if(errormsgSignup.length>0){
-            if(window.location.href.indexOf('#loginForm') == -1) {
+          let errormsgUsernameSignup = getCookie("signupFormUsernameError");
+          if(errormsgUsernameSignup.length>0){
+            if(window.location.href.indexOf('#signupForm') == -1) {
                   let signupForm = new bootstrap.Modal(document.getElementById('signupForm'), {keyboard: true});
                   signupForm.show();
                   let userNameSignup=getCookie("userNameSignup");
                   let securitySeedSignup=getCookie("securitySeedSignup");
                   document.getElementById("userNameSignup").setAttribute('value',decodeURI(userNameSignup));
                   document.getElementById("userNameSignup").setAttribute('class','form-control is-invalid');
+                  document.getElementById("securitySeedSignup").setAttribute('value',decodeURI(securitySeedSignup));
+                  return;
+              }
+          }
+          let errormsgSeedSignup = getCookie("signupFormSeedError");
+          if(errormsgSeedSignup.length>0){
+            if(window.location.href.indexOf('#signupForm') == -1) {
+                  let signupForm = new bootstrap.Modal(document.getElementById('signupForm'), {keyboard: true});
+                  signupForm.show();
+                  let userNameSignup=getCookie("userNameSignup");
+                  let securitySeedSignup=getCookie("securitySeedSignup");
+                  document.getElementById("userNameSignup").setAttribute('value',decodeURI(userNameSignup));
+                  document.getElementById("securitySeedSignup").setAttribute('class','form-control is-invalid');
                   document.getElementById("securitySeedSignup").setAttribute('value',decodeURI(securitySeedSignup));
                   return;
               }
@@ -407,15 +447,13 @@
                   if(loginFormUserName.length>0){
                     document.getElementById("userName").setAttribute("value",loginFormUserName);
                   }
+                  let loginFormError=getCookie("loginFormError");
+                  if(loginFormError.length>0){
+                      let errormsgLogin = getCookie("loginFormError");
+                      document.getElementById("errorMsgInputForm").innerHTML =decodeURI(errormsgLogin);
+                  }
                   return;
               }
-          }
-          // show modal login form erros if any
-          let loginFormError=getCookie("loginFormError");
-          if(loginFormError.length>0){
-              let errormsgLogin = getCookie("loginFormError");
-              document.getElementById("errorMsgInputForm").innerHTML =decodeURI(errormsgLogin);
-              return;
           }
         }
         // function to check that the passwords are the same in signup form

@@ -128,6 +128,8 @@ async function mainloop(){
     //login
     app.post('/login',function(req, res) {
         const fs = require('fs')
+        res.clearCookie('loginFormError');
+        res.clearCookie('loginFormUserName');
         let filename="./"+PATHKEYS+"/"+req.body.userName+".enc";
         if (!fs.existsSync(filename)) {
             res.cookie('loginFormError', encodeURI("Wrong password or username not present"));
@@ -207,7 +209,10 @@ async function mainloop(){
         res.clearCookie('loginFormUserName');
         res.clearCookie('userNameSignup');
         res.clearCookie('securitySeedSignup');
-        res.clearCookie('signupFormUsernameError');
+        res.clearCookie('signupFormUsernameError');   
+        res.clearCookie('signupFormSeedError');        
+        res.clearCookie('assetStatus');
+        res.clearCookie('errorMsgInputForm');
         res.redirect("/");    
     });
     //signup
@@ -215,6 +220,7 @@ async function mainloop(){
         res.clearCookie('signupFormUsernameError'); 
         res.clearCookie('userNameSignup');
         res.clearCookie('securitySeedSignup');
+        res.clearCookie('signupFormSeedError');        
         const fs = require("fs")
         let filename="./"+PATHKEYS+"/"+req.body.userNameSignup+".enc";
         if(fs.existsSync(filename)){
@@ -223,9 +229,20 @@ async function mainloop(){
             res.cookie('securitySeedSignup',encodeURI(req.body.securitySeedSignup));
             console.log("[info] Failed attempt to signup with an username already present");
             res.redirect("/");   
+            return;
         }
         const keyring = new Keyring({ type: 'sr25519' });
-        const keyspair = keyring.addFromUri(req.body.securitySeedSignup,{ name: req.body.userNameSignup });
+        let keyspair;
+        try{
+            keyspair = keyring.addFromUri(req.body.securitySeedSignup,{ name: req.body.userNameSignup });
+        }catch(err){
+            res.cookie('signupFormSeedError', "Secrete Seed is wrong, it can be 12,15,18,21 or 24 words"); 
+            res.cookie('userNameSignup',encodeURI(req.body.userNameSignup));
+            res.cookie('securitySeedSignup',encodeURI(req.body.securitySeedSignup));
+            console.log("[info] Wrong secret seed");
+            res.redirect("/");
+            return;   
+        }
         console.log(`[info] Signup - ${keyspair.meta.name}: has address ${keyspair.address} with publicKey [${keyspair.publicKey}]`);
         const accountid=`${keyspair.address}`;
         if (!fs.existsSync("./"+PATHKEYS)) {
@@ -286,6 +303,17 @@ async function mainloop(){
         let j='{"randomseed":"'+randomseed+'"}';
         res.send(j);
     });
+    app.route('/accountbalance').get(function(req,res)
+    {
+        let sessiontoken=req.cookies.sessiontoken
+        if(sessiontoken!=undefined){
+            let b = sessiontoken.split('###');
+            get_balance_account(res,api,b[3]);
+        }
+        else
+            res.send('{"balance":"0","account":""}');
+    });
+    
     //get last log data
     app.route('/logdata').get(function(req,res)
     {
@@ -376,6 +404,14 @@ async function mainloop(){
 async function get_last_block(res,api){
     const lastHeader = await api.rpc.chain.getHeader();                
     res.send(lastHeader);
+}
+//function to get last block of the blockchain
+async function get_balance_account(res,api,accountid){
+    let { data: { free: previousFree }, nonce: previousNonce } = await api.query.system.account(accountid);           
+    let balance=previousFree/10000000000;
+    let balancestr=balance.toLocaleString();
+    let a='{"balance":"'+(balancestr)+'","account":"'+accountid+'"}'
+    res.send(a);
 }
 // function to send and back a file content for http request
 async function getHttpFileIpfs(res,ipfsaddress,ipfsfilename){
@@ -766,8 +802,11 @@ function generateSessionToken(securityseed,username){
     let nonceb64 = n.toString('base64');
     let ub = Buffer.from(username);
     let usernameb64 = ub.toString('base64');
+    const keyring = new Keyring({ type: 'sr25519' });
+    const keyspair = keyring.addFromUri(securityseed,{ name: username });
+    const accountid=`${keyspair.address}`;
     // build session token
-    let sessiontoken=usernameb64+"###"+nonceb64+"###"+encryptedb64;
+    let sessiontoken=usernameb64+"###"+nonceb64+"###"+encryptedb64+"###"+accountid;
     return(sessiontoken);
 }
 // function to store an asset in the assets table
@@ -938,6 +977,10 @@ async function viewAssetPrepare(assetid,res){
         let uid=0;
         if (results.length > 0) {
             res.cookie("destinationAccountTransfer",results[0].accountowner);
+            if(results[0].dtapproval==undefined || results[0].dtapproval==null)
+                res.cookie('assetStatus', encodeURI("pending"));    
+            else
+                res.cookie('assetStatus', encodeURI("valid"));    
             res.cookie('viewAsset', encodeURI(assetid));
             res.redirect("/admin"); 
         }
@@ -967,6 +1010,7 @@ async function viewAssetDetails(req,res){
                     ad = ad + '<tr><td>Photo</td><td><img src="/photoasset?ipfsphotoaddress='+encodeURI(results[0].ipfsphotoaddress)+'&ipfsphotofilename='+encodeURI(results[0].ipfsphotofilename)+'" class="img-fluid"></td</tr>';
                     let dttr = `${results[0].dttransaction}`;
                     ad = ad + "<tr><td>Date Creation</td><td>" + dttr + "</td></tr>";
+                    ad = ad + "<tr><td>Owner Account</td><td>" + results[0].accountowner + "</td></tr>";
                     ad = ad + "<tr><td>Transaction id</td><td>" + results[0].transactionid + "</td></tr>";
                     let dta = `${results[0].dtapproval}`;
                     if (dta == "null") {
@@ -1007,6 +1051,7 @@ async function viewAssetDetailsAdmin(req,res){
                     ad = ad + '<tr><td>Photo</td><td><img src="/photoasset?ipfsphotoaddress='+encodeURI(results[0].ipfsphotoaddress)+'&ipfsphotofilename='+encodeURI(results[0].ipfsphotofilename)+'" class="img-fluid"></td</tr>';
                     let dttr = `${results[0].dttransaction}`;
                     ad = ad + "<tr><td>Date Creation</td><td>" + dttr + "</td></tr>";
+                    ad = ad + "<tr><td>Owner Account</td><td>" + results[0].accountowner + "</td></tr>";
                     ad = ad + "<tr><td>Transaction id</td><td>" + results[0].transactionid + "</td></tr>";
                     let dta = `${results[0].dtapproval}`;
                     if (dta == "null") {

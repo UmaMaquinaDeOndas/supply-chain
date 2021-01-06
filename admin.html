@@ -118,7 +118,7 @@
                 </div>
                 <div id="errorMsgViewAsset"  class="text-danger"></div>
                 <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="clearCookie('assetView');clearCookie('transferAssetError');clearCookie('destinationAccountTransfer');">Close</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="clearCookie('assetView');clearCookie('transferAssetError');clearCookie('destinationAccountTransfer');clearCookie('assetStatus');">Close</button>
                   <button type="submit" id="transferAssettButton" name="transferAssettButton" value="transfer" class="btn btn-primary">Transfer</button>
                   <div id="approvalButton"></div>
                   </div>
@@ -155,7 +155,7 @@
                 </div>
                 <div id="errorMsgInputForm" class="text-danger"></div>
                 <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="clearCookie('loginFormError');clearCookie('loginFormUserName');" >Close</button>
                   <button type="submit" class="btn btn-primary">Submit</button>
                   Don't you have an account? <button class="btn btn-outline-secondary" type="button" id="linktosignup" onclick="startSignup();" >Signup</button>
                   </div>
@@ -227,7 +227,7 @@
                   <input type="text" class="form-control" id="securitySeedSignup" name="securitySeedSignup" value="" required>
                   <button class="btn btn-outline-secondary" type="button" id="securitySeedButton" onclick="getRandomSeed();" >Generate</button>
                   <div class="invalid-feedback">
-                    Please insert a security seed to generate your private keys.
+                    Please insert a security seed to generate your private keys (12,15,18,21 or 24 words).
                   </div>
                 </div>
                 <label for="passwordSignup" class="form-label">Password</label>
@@ -259,7 +259,7 @@
                   </div>
                 </div>
                 <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="clearCookie('signupFormUsernameError');clearCookie('signupFormSeedError');" >Close</button>
                   <button type="submit" class="btn btn-primary">Submit</button>
                   </div>
               </form>
@@ -388,7 +388,10 @@
               if(destinationAccountTransfer.length>0){
                 document.getElementById("destinationAccountTransfer").setAttribute('value',decodeURI(destinationAccountTransfer));
               }
-              document.getElementById("approvalButton").innerHTML ='<button type="submit" id="approveAssettButton" name="approveAssettButton" value="approve" class="btn btn-primary">Approve</button>';
+              let assetStatus = getCookie("assetStatus");
+              if(assetStatus=="pending")
+                document.getElementById("approvalButton").innerHTML ='<button type="submit" id="approveAssettButton" name="approveAssettButton" value="approve" class="btn btn-primary">Approve</button>';
+              
           }
           // show modal signup form with errors if any
           let errormsgSignup = getCookie("signupFormUsernameError");
@@ -414,15 +417,14 @@
                   if(loginFormUserName.length>0){
                     document.getElementById("userName").setAttribute("value",loginFormUserName);
                   }
+                  let loginFormError=getCookie("loginFormError");
+                  if(loginFormError.length>0){
+                    let errormsgLogin = getCookie("loginFormError");
+                    document.getElementById("errorMsgInputForm").innerHTML =decodeURI(errormsgLogin);
+              
+                  }
                   return;
               }
-          }
-          // show modal login form erros if any
-          let loginFormError=getCookie("loginFormError");
-          if(loginFormError.length>0){
-              let errormsgLogin = getCookie("loginFormError");
-              document.getElementById("errorMsgInputForm").innerHTML =decodeURI(errormsgLogin);
-              return;
           }
         }
         // function to check that the passwords are the same in signup form
