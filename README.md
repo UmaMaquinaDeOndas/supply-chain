@@ -10,6 +10,27 @@ In the current version a normal user can make:
 - Add Assets (write a new assets in the blockchain, subject to approval from "Admin")
 - Transfer Assets (once it has been approved from Admin as valid asset)
 
+## Testing Users
+
+Accounts balances initialization is coming in next milestones. For now, you can use "well-known" accounts
+for trying the application out. **Please, use one of the seeds bellow when you register a new user in the sign-up form**.
+These accounts have active deposit which is necessary for submitting transactions.
+
+username: Alice\
+secret seed: bottom drive obey lake curtain smoke basket hold race lonely fit walk//Alice\
+account: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+
+username: Bob\
+secret seed: bottom drive obey lake curtain smoke basket hold race lonely fit walk//Bob\
+account: 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
+
+username: Admin\
+secret seed: bottom drive obey lake curtain smoke basket hold race lonely fit walk//Admin\
+account: 5Cqg641taJcn16MmReBn3uA8ENfY6ZgXKqwEaLACRXC9Z8Ne
+
+*Admin is the super user enabled to approve the new assets.*\
+An asset cannot be transferred when the approval is pending.
+
 ## Running the UI
 
 ### Run project with Docker
@@ -56,21 +77,3 @@ node index.js
 
 Once the front-end server is running direct your browser to this URL:
 http://localhost:3000
-
-The Node generate a few accounts with active deposit that are required to make and blockchain writing.
-You can use the following "well-know" accounts for testing:
-
-username: Alice
-secret seed: bottom drive obey lake curtain smoke basket hold race lonely fit walk//Alice
-account: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
-
-username: Bob
-secret seed: bottom drive obey lake curtain smoke basket hold race lonely fit walk//Bob
-account: 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
-
-username: Admin
-secret seed: bottom drive obey lake curtain smoke basket hold race lonely fit walk//Admin
-account: 
-Admin is the super user enabled to approve the new assets. An asset cannot be transferred when the approval is pending.
-
-**** Please use exactly the secret seeds above, in the signup form ***
